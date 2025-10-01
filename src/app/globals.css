@@ -1,0 +1,444 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "leaflet/dist/leaflet.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: rgb(255 255 255);
+  --foreground: rgb(0 20 78);
+  --card: rgb(255 255 255);
+  --card-foreground: rgb(0 20 78);
+  --popover: rgb(255 255 255);
+  --popover-foreground: rgb(0 20 78);
+  --primary: rgb(1 28 92);
+  --primary-foreground: rgb(248 248 251);
+  --secondary: rgb(243 243 246);
+  --secondary-foreground: rgb(1 28 92);
+  --muted: rgb(243 243 246);
+  --muted-foreground: rgb(104 112 162);
+  --accent: rgb(243 243 246);
+  --accent-foreground: rgb(1 28 92);
+  --destructive: rgb(183 72 0);
+  --destructive-foreground: rgb(248 248 251);
+  --border: rgb(232 232 239);
+  --input: rgb(232 232 239);
+  --ring: rgb(151 155 202);
+  --chart-1: rgb(204 115 0);
+  --chart-2: rgb(0 141 168);
+  --chart-3: rgb(0 79 162);
+  --chart-4: rgb(194 204 0);
+  --chart-5: rgb(229 163 0);
+  --sidebar: rgb(248 248 251);
+  --sidebar-foreground: rgb(0 20 78);
+  --sidebar-primary: rgb(1 28 92);
+  --sidebar-primary-foreground: rgb(248 248 251);
+  --sidebar-accent: rgb(243 243 246);
+  --sidebar-accent-foreground: rgb(1 28 92);
+  --sidebar-border: rgb(232 232 239);
+  --sidebar-ring: rgb(151 155 202);
+}
+
+.dark {
+  --background: rgb(0 20 78);
+  --foreground: rgb(248 248 251);
+  --card: rgb(1 28 92);
+  --card-foreground: rgb(248 248 251);
+  --popover: rgb(1 28 92);
+  --popover-foreground: rgb(248 248 251);
+  --primary: rgb(232 232 239);
+  --primary-foreground: rgb(1 28 92);
+  --secondary: rgb(40 51 108);
+  --secondary-foreground: rgb(248 248 251);
+  --muted: rgb(40 51 108);
+  --muted-foreground: rgb(151 155 202);
+  --accent: rgb(40 51 108);
+  --accent-foreground: rgb(248 248 251);
+  --destructive: rgb(212 99 0);
+  --destructive-foreground: rgb(248 248 251);
+  --border: rgba(255 255 255 / 0.1);
+  --input: rgba(255 255 255 / 0.15);
+  --ring: rgb(118 123 160);
+  --chart-1: rgb(0 108 255);
+  --chart-2: rgb(0 171 158);
+  --chart-3: rgb(229 163 0);
+  --chart-4: rgb(195 91 255);
+  --chart-5: rgb(211 95 0);
+  --sidebar: rgb(1 28 92);
+  --sidebar-foreground: rgb(248 248 251);
+  --sidebar-primary: rgb(0 108 255);
+  --sidebar-primary-foreground: rgb(248 248 251);
+  --sidebar-accent: rgb(40 51 108);
+  --sidebar-accent-foreground: rgb(248 248 251);
+  --sidebar-border: rgba(255 255 255 / 0.1);
+  --sidebar-ring: rgb(118 123 160);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom map marker styles */
+.custom-marker {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.custom-marker div {
+  pointer-events: auto;
+}
+
+/* Ensure pin points render correctly */
+.custom-marker .pin-point {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* Force accordion triggers to stretch full width */
+[data-radix-accordion-trigger] {
+  width: 100% !important;
+  justify-content: space-between !important;
+}
+
+/* Leaflet tooltip styling */
+.leaflet-tooltip {
+  background-color: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+  font-family: inherit !important;
+}
+
+.leaflet-tooltip-top:before {
+  border-top-color: #e5e7eb !important;
+}
+
+.leaflet-tooltip-bottom:before {
+  border-bottom-color: #e5e7eb !important;
+}
+
+.leaflet-tooltip-left:before {
+  border-left-color: #e5e7eb !important;
+}
+
+.leaflet-tooltip-right:before {
+  border-right-color: #e5e7eb !important;
+}
+
+/* Drawing tool styles */
+.drawing-point-preview,
+.drawing-start-point,
+.drawing-point-marker {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Drawing element selection styles */
+.drawing-element-selected {
+  animation: drawing-pulse 2s infinite;
+}
+
+@keyframes drawing-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Custom cursor for drawing tools */
+.leaflet-container.drawing-mode {
+  cursor: crosshair !important;
+}
+
+.leaflet-container.drawing-mode * {
+  cursor: crosshair !important;
+}
+
+/* Select/Move tool cursor */
+.leaflet-container.move-mode {
+  cursor: default !important;
+}
+
+.leaflet-container.move-mode * {
+  cursor: default !important;
+}
+
+/* When dragging the map, show grabbing cursor */
+.leaflet-container.move-mode.leaflet-drag-target {
+  cursor: grabbing !important;
+}
+
+.leaflet-container.move-mode.leaflet-drag-target * {
+  cursor: grabbing !important;
+}
+
+/* Prevent text selection during drawing */
+.leaflet-container.drawing-mode {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Drawing tool feedback styles */
+.drawing-feedback {
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* Popup styles for drawings */
+.leaflet-popup-content {
+  margin: 8px 12px !important;
+  line-height: 1.4 !important;
+}
+
+.leaflet-popup-content h3 {
+  margin: 0 0 4px 0 !important;
+}
+
+.leaflet-popup-content p {
+  margin: 0 !important;
+}
+
+/* Ensure drawing elements are interactive */
+.drawing-element,
+.drawing-element-selected {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.drawing-element:hover {
+  opacity: 0.8;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  /* Mobile layout adjustments - full height by default */
+  .mobile-map-container {
+    height: 100vh !important;
+    transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  /* Adjust map height when details panel is open */
+  .mobile-map-container.details-panel-open {
+    height: 40vh !important;
+  }
+  
+  /* Reposition details panel to bottom on mobile */
+  .fixed.top-4.right-4 {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    top: auto !important;
+    right: 0 !important;
+    width: 100vw !important;
+    height: 60vh !important;
+    max-height: 60vh !important;
+    border-radius: 16px 16px 0 0 !important;
+    transform: translateY(100%);
+    animation: slide-up 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  
+  @keyframes slide-up {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  
+  /* Adjust map controls for mobile */
+  .mobile-map-controls {
+    padding: 8px 16px;
+  }
+  
+  .mobile-layer-button {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  
+  .mobile-search {
+    width: 100% !important;
+    max-width: 300px;
+  }
+  
+  /* Compact drawing toolbar for mobile */
+  .fixed.bottom-6 {
+    bottom: 0.75rem !important; /* Reduce bottom margin */
+    max-width: calc(100vw - 1rem) !important; /* Reduce side margins */
+  }
+  
+  .fixed.bottom-6 > div {
+    padding: 0.25rem !important; /* Reduce card padding from p-2 to p-1 */
+    gap: 0.25rem !important; /* Reduce gap between elements */
+  }
+  
+  .fixed.bottom-6 .h-4.w-4 {
+    height: 1.125rem !important; /* Make icons larger (18px) */
+    width: 1.125rem !important;
+  }
+  
+  .fixed.bottom-6 .bg-secondary {
+    padding: 0.125rem !important; /* Reduce toggle container padding */
+    margin-right: 0.25rem !important; /* Reduce right margin */
+  }
+  
+  .fixed.bottom-6 button {
+    padding: 0.375rem 0.25rem !important; /* Reduce button padding (py-1.5 px-1) */
+    min-width: 40px !important; /* Reduce minimum width */
+    gap: 0.125rem !important; /* Reduce gap between icon and text */
+  }
+  
+  .fixed.bottom-6 .flex.items-center.gap-2 {
+    gap: 0.25rem !important; /* Reduce gap in view as section */
+    margin-right: 0.25rem !important; /* Reduce margin */
+    flex-shrink: 1 !important; /* Allow section to shrink if needed */
+  }
+  
+  .fixed.bottom-6 .h-8 {
+    height: 1.75rem !important; /* Make select dropdown smaller */
+  }
+  
+  /* Make role dropdown more responsive - handled by specific select-trigger styles below */
+  
+  .fixed.bottom-6 select,
+  .fixed.bottom-6 [role="combobox"] {
+    font-size: 0.8rem !important; /* Slightly larger text since we have more space */
+    padding: 0.25rem 0.75rem !important; /* More horizontal padding */
+  }
+  
+  /* Fix dropdown content sizing with more specific selectors */
+  .fixed.bottom-6 [data-radix-select-content],
+  .fixed.bottom-6 [data-radix-popper-content-wrapper] {
+    min-width: 200px !important; /* Match the trigger width */
+  }
+  
+  .fixed.bottom-6 [data-radix-select-item] {
+    padding: 0.375rem 0.75rem !important; /* Comfortable padding for items */
+    white-space: nowrap !important; /* Prevent text wrapping */
+    font-size: 0.875rem !important; /* Readable text in dropdown */
+    min-height: 2rem !important; /* Ensure proper height */
+  }
+  
+  /* Fix the trigger button text specifically with higher specificity */
+  .fixed.bottom-6 [data-slot="select-trigger"] {
+    display: flex !important;
+    flex-direction: row !important; /* Force horizontal layout */
+    align-items: center !important;
+    justify-content: space-between !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    width: 200px !important; /* Fixed width for consistency */
+    min-height: 2rem !important; /* Allow natural height, minimum 2rem */
+    padding: 0.5rem 0.75rem !important; /* Ensure adequate padding */
+  }
+  
+  /* Target the select value more specifically */
+  .fixed.bottom-6 [data-slot="select-trigger"] [data-slot="select-value"] {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    flex: 1 1 auto !important; /* Take up available space but allow shrinking */
+    display: flex !important;
+    align-items: center !important;
+  }
+  
+  /* Ensure the dropdown arrow stays on the right with proper specificity */
+  .fixed.bottom-6 [data-slot="select-trigger"] svg {
+    flex-shrink: 0 !important;
+    margin-left: 0.5rem !important;
+    width: 1rem !important;
+    height: 1rem !important;
+  }
+  
+  /* Hide only text labels in toolbar on mobile, not buttons */
+  .fixed.bottom-6 button .text-xs {
+    display: none !important;
+  }
+  
+  /* Hide the "View as:" label specifically on mobile */
+  .fixed.bottom-6 .flex.items-center.gap-2 > span.text-sm.text-muted-foreground {
+    display: none !important;
+  }
+  
+  /* Make buttons more square since no text */
+  .fixed.bottom-6 button:not([data-slot="select-trigger"]) {
+    display: flex !important; /* Ensure buttons are visible */
+    padding: 0.375rem !important; /* Make padding equal on all sides */
+    min-width: 36px !important; /* Smaller square buttons */
+    min-height: 36px !important;
+    flex-direction: column !important; /* Stack icon and text vertically - only for non-select buttons */
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  
+  /* Ensure icons remain visible */
+  .fixed.bottom-6 button svg {
+    display: block !important;
+  }
+}
+
+/* Tablet breakpoint adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .desktop-details-panel {
+    width: 350px !important;
+  }
+}
+
+/* Desktop - ensure map always full height */
+@media (min-width: 769px) {
+  .mobile-map-container {
+    height: 100vh !important;
+  }
+}
