@@ -1,7 +1,13 @@
 # PROJECT_CONTEXT.md — Continuous Project Memory
 
-A single source of truth updated **after each work session** to maintain full context, decisions, and next steps.
-This file should always reflect the **current state of the project** so anyone can jump in and continue seamlessly.
+> **📖 How to Update**
+>
+> **Quick update**: Manually add compressed session entry (5-10 lines) using template in `.claude/commands/project-context.md`
+> **AI-assisted**: Type `/session-end` and approve generated summary (recommended)
+> **Keep brief**: Document decisions, not implementation details
+
+A single source of truth for project status, decisions, and session history.
+Updated after each work session to maintain full context and enable seamless continuation.
 
 ---
 
@@ -438,18 +444,20 @@ usePersistentDrawing() → {
 
 ---
 
-### Session 5: 2025-10-09 (Documentation Optimization)
+### Session 5: 2025-10-09 (Documentation Optimization & Session Workflow)
 
-**Goal:** Reduce documentation redundancy and token usage
-**Analysis:** Identified 80% duplication between CLAUDE.md and BUBBLE_IMPLEMENTATION_PLAN.md (~30KB redundant)
-**Actions:**
-- Streamlined CLAUDE.md: 47KB → 13KB (-72% reduction)
-- Compressed PROJECT_CONTEXT.md session logs
-- Archived BUBBLE_TRANSFORMATION_PLAN.md (obsolete)
-- Established clear documentation hierarchy
+**Work Done:**
+- Optimized documentation: CLAUDE.md 47KB → 11KB (-77%), PROJECT_CONTEXT.md 24KB → 15KB (-38%)
+- Archived obsolete docs (REFERENCE_ prefix for BUBBLE_TRANSFORMATION_PLAN, PRD)
+- Created AI-assisted session update workflow with `/session-end` command
 
-**Result:** ~45% total documentation reduction, clearer single-purpose files
-**Status:** In progress
+**Key Decisions:**
+- Each doc has single purpose (CLAUDE=quick ref, BUBBLE_PLAN=details, PROJECT_CONTEXT=history)
+- AI-assisted updates recommended (30s vs 5min manual)
+- Archive sessions every 10 entries to keep file under 20KB
+
+**Commits:** `de27033`
+**Status:** Complete
 
 ---
 

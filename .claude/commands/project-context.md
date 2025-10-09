@@ -1,58 +1,40 @@
-# PROJECT_CONTEXT.md — Continuous Project Memory
+# PROJECT_CONTEXT.md — Continuous Project Memory 
+ **📖 How to Update**                            
 
-A single source of truth updated **after each work session** to maintain full context, decisions, and next steps.  
-This file should always reflect the **current state of the project** so anyone can jump in and continue seamlessly.
+ **Quick update**: Manually add compressed session entry (5-10 lines) 
+ **AI-assisted**: Type `/session-end` and approve generated summary   
+ **Keep brief**: Document decisions, not implementation details 
+A single source of truth for project status, decisions, and session history. 
 
----
 
-## 🧠 Current Focus
-Brief description of the current goal, task, or milestone being worked on.  
-(Example: “Implementing authentication flow and preparing the GitHub Actions pipeline for auto-deployment.”)
+### Session X: YYYY-MM-DD (Brief Title)
 
----
+**Work Done:**
+- Bullet 1 (what was accomplished)
+- Bullet 2 (what was built/changed)
 
-## 📜 Summary of Latest Session
-Short summary of what was done in the latest session:
-- ✅ Tasks completed
-- 🛠 Fixes or changes implemented
-- 🤔 Decisions made (and why)
-- 🧪 Experiments or tests run (if any)
+**Key Decisions:** (only NEW decisions)
+- Decision 1
+- Decision 2
 
----
-
-## 📌 Open Questions / Pending Decisions
-Document any unresolved topics or decisions that need attention in the next session:
-- ❓ Question 1
-- ⚠️ Unclear dependency
-- 💭 Architectural choice under discussion
+**Status:** [Complete / In Progress / Blocked]
 
 ---
 
-## 📅 Next Steps
-Clear, actionable next steps for the next work session:
-- [ ] Task 1
-- [ ] Task 2
-- [ ] Task 3
+## What to Update in PROJECT_CONTEXT.md
 
----
+1. Add new session entry (above) to the Session Log section
+2. Update "Current Focus" if the goal changed
+3. Add to "Open Questions" if new blockers emerged
+4. Update "Next Steps" checklist with remaining work
 
-## 🧭 Project Notes & Assumptions
-General ongoing context that should persist between sessions:
-- 📁 Directory structure decisions
-- 🔧 Tooling or frameworks used
-- 📡 Key integrations
-- 📌 Constraints, requirements, or known limitations
+## What NOT to Include
+- ❌ Detailed implementation steps (→ already in commit messages)
+- ❌ Code snippets (→ in git history)
+- ❌ Explanations of known architecture (→ in CLAUDE.md)
+- ❌ Duplicate information already documented
 
----
-
-## 🪪 Important References
-Links, commands, or resources referenced frequently:
-- 📚 Docs:
-- 🧰 Commands:
-- 🔗 External links:
-
----
-
-✅ **Usage:**  
-After each coding or planning session, automatically or manually generate a new entry in `/docs/PROJECT_CONTEXT_LOG.md` using the template above.  
-Never update this file — it serves as the **instruction blueprint** for maintaining the session log.
+## Keep It Brief
+- Session entry: 5–10 lines max
+- Focus on what changed, not how
+- Document decisions, not implementation details
