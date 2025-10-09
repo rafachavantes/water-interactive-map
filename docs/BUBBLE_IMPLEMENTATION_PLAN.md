@@ -64,19 +64,19 @@
 Fields:
 - id (unique id) - auto
 - name (text)
-- type (text) - "line" | "polygon" | "polyline" | "point"
+- type (option set: DrawingTypes) - line | polygon | polyline | point
 - coordinates (text) - JSON array of [lat, lng]
 - markerPosition (text) - JSON [lat, lng] for marker placement
-- elementType (text) - "ride" | "canal" | "lateral" | "headgate" | "meter" | "pump" | "pivot" | "land" | "hazard" | "maintenance" | "custom"
+- elementType (option set: ElementTypes) - ride | canal | lateral | headgate | meter | pump | pivot | land | hazard | maintenance | custom
 - linkedEntity (Drawing Entity) - relationship
-- color (text) - hex color
+- color (text) - hex color (e.g., "#3B82F6") - kept as text for custom colors
 - description (text)
-- status (text) - "active" | "inactive" | "maintenance"
-- category (text) - "infrastructure" | "monitoring" | "other"
+- status (option set: ElementStatus) - active | inactive | maintenance
+- category (option set: Categories) - infrastructure | monitoring | other
 - privacy (text) - JSON: {roles: {users: bool, ditchRiders: bool, admins: bool}, specificUsers: [ids], linkedEntity: bool}
-- approvalStatus (text) - "pending" | "approved" | "rejected"
+- approvalStatus (option set: ApprovalStatus) - pending | approved | rejected
 - createdBy (User) - relationship
-- createdByRole (text) - "User" | "Ditch Rider" | "Admin"
+- createdByRole (option set: Roles) - User | Ditch Rider | Admin
 - reviewedBy (User) - relationship
 - reviewedAt (date)
 - reviewNotes (text)
@@ -88,18 +88,20 @@ Fields:
 - files (text) - JSON array of file objects
 - notes (text)
 - properties (text) - JSON: {strokeWeight: number, fillOpacity: number, tool: string}
-- createdAt (date) - auto
-- modifiedAt (date) - auto
+- Created Date (date) - auto (use Bubble's built-in field)
+- Modified Date (date) - auto (use Bubble's built-in field)
 ```
+
+**Note:** Use Bubble's built-in "Created Date" and "Modified Date" fields instead of custom createdAt/modifiedAt. Enable these in the Data Type settings.
 
 #### 2. **Drawing Entities** (Infrastructure entities)
 ```
 Fields:
 - id (unique id)
-- type (text) - "canal" | "ride" | "lateral" | "headgate" | "meter" | "pump" | "pivot" | "land"
+- type (option set: ValidEntityTypes) - canal | ride | lateral | headgate | meter | pump | pivot | land
 - name (text)
 - description (text)
-- status (text)
+- status (option set: ElementStatus) - active | inactive | maintenance
 - contactName (text)
 - contactPhone (text)
 - contactEmail (text)
@@ -119,8 +121,8 @@ Fields:
     "markerPosition": [lat, lng],
     "color": "#3B82F6"
   }
-- createdAt (date)
-- modifiedAt (date)
+- Created Date (date) - auto (use Bubble's built-in field)
+- Modified Date (date) - auto (use Bubble's built-in field)
 ```
 
 #### 3. **Issues**
@@ -129,31 +131,68 @@ Fields:
 - id (unique id)
 - drawing (Drawing) - relationship
 - description (text)
-- createdBy (User)
-- createdByRole (text)
-- createdAt (date)
-- resolvedBy (User)
+- createdBy (User) - relationship
+- createdByRole (option set: Roles) - User | Ditch Rider | Admin
+- resolvedBy (User) - relationship
 - resolvedAt (date)
-- status (text) - "open" | "resolved"
+- status (option set: IssueStatus) - open | resolved
+- Created Date (date) - auto (use Bubble's built-in field)
 ```
 
 #### 4. **Users** (extend built-in User type)
 ```
 Custom fields:
-- role (text) - "User" | "Ditch Rider" | "Admin"
+- role (option set: Roles) - User | Ditch Rider | Admin
 - assignedRides (list of Drawing Entities) - for ditch riders
 ```
 
 ### Option Sets
+
+**Required Option Sets** (must be created before database tables):
+
 ```
 - DrawingTypes: line, polygon, polyline, point
+  (Used in: Drawings.type)
+
 - ElementTypes: ride, canal, lateral, headgate, meter, pump, pivot, land, hazard, maintenance, custom
+  (Used in: Drawings.elementType)
+
 - ValidEntityTypes: canal, ride, lateral, headgate, meter, pump, pivot, land
-  (Used for "Create Entity from Drawing" feature - excludes hazard, maintenance, custom)
+  (Used in: Drawing Entities.type - excludes hazard, maintenance, custom)
+
+- ElementStatus: active, inactive, maintenance
+  (Used in: Drawings.status, Drawing Entities.status)
+
+- Categories: infrastructure, monitoring, other
+  (Used in: Drawings.category)
+
 - Roles: User, Ditch Rider, Admin
+  (Used in: Users.role, Drawings.createdByRole, Issues.createdByRole)
+
 - ApprovalStatus: pending, approved, rejected
-- Colors: blue, red, green, yellow, purple, orange
+  (Used in: Drawings.approvalStatus)
+
+- IssueStatus: open, resolved
+  (Used in: Issues.status)
 ```
+
+**Note:** The `color` field in Drawings table is kept as **text** (not Option Set) to allow custom hex colors like "#3B82F6". If you want to restrict users to predefined colors, you can create a Colors Option Set with values like: blue (#3B82F6), red (#EF4444), green (#10B981), yellow (#F59E0B), purple (#8B5CF6), orange (#F97316).
+
+### Why Use Option Sets?
+
+**Benefits:**
+1. **Data Integrity:** Prevents typos ("Admn" vs "Admin", "activ" vs "active")
+2. **Performance:** Option Sets are indexed by Bubble, resulting in faster database queries
+3. **UI Auto-generation:** Dropdowns automatically populate from Option Sets
+4. **Validation:** Bubble validates values automatically (no invalid statuses possible)
+5. **Easy Refactoring:** Changing option display names updates all references automatically
+6. **Better Conditionals:** Cleaner workflow logic (e.g., "This Drawing's status is active" vs text comparison)
+
+**When to Use Text Instead:**
+- Complex nested structures (JSON): privacy, metadata, coordinates, files, properties
+- User-generated content: name, description, notes, contactName
+- Custom values: color (hex codes), contactPhone, contactEmail
+- Large text fields: reviewNotes, description
 
 ---
 
