@@ -144,15 +144,33 @@ src/
 - Use Tailwind classes for component styling
 - Customize shadcn/ui components in `src/components/ui/`
 
+## Documentation
+
+This project has comprehensive documentation for both developers and AI assistants:
+
+| Document | Purpose | Audience |
+|----------|---------|----------|
+| **CLAUDE.md** | Quick reference & AI guidance | AI assistants, new developers |
+| **docs/BUBBLE_IMPLEMENTATION_PLAN.md** | Detailed Bubble.io implementation | Bubble developers |
+| **docs/PROJECT_CONTEXT.md** | Session history & decisions | All team members |
+| **docs/freehand_draw_investigation_report.md** | Freehand drawing solution | Technical implementers |
+| **AGENTS.md** | Next.js architecture rules | Next.js developers |
+| **SUPABASE_SETUP.md** | Database setup guide | Backend developers |
+
+**Start Here:**
+- **New to project**: Read `CLAUDE.md` → `docs/PROJECT_CONTEXT.md`
+- **Implementing Bubble**: Read `docs/BUBBLE_IMPLEMENTATION_PLAN.md`
+- **Working with Next.js**: Read `AGENTS.md` + `CLAUDE.md`
+
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Make your changes and commit: `git commit -m 'Add feature'`
-4. Push to the branch: `git push origin feature-name`
-5. Submit a pull request
+1. Read `CLAUDE.md` for project overview and architecture
+2. Check `docs/PROJECT_CONTEXT.md` for latest status
+3. Create a feature branch: `git checkout -b feature-name`
+4. Make your changes and commit: `git commit -m 'Add feature'`
+5. Update `docs/PROJECT_CONTEXT.md` with your session summary
+6. Submit a pull request
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for
-details.
+This project is licensed under the MIT License - see the LICENSE file for details.

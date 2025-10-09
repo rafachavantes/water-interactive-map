@@ -1,6 +1,11 @@
 # Bubble.io Implementation Plan
 ## Using Leafy Maps Plugin + Custom Freehand Extension
 
+> **📖 Primary Implementation Guide** - Referenced by CLAUDE.md
+>
+> This is the single source of truth for Bubble.io implementation details.
+> For quick reference and AI assistant guidance, see `/CLAUDE.md`
+
 **Based on:** PRD requirements, current Next.js implementation, proven freehand drawing solution
 
 ---

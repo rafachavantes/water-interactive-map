@@ -210,19 +210,11 @@ water-interactive-map/
 
 ### 🔧 Technology Stack
 
-**Current Next.js App:**
-- Framework: Next.js 15 + React 19 + TypeScript
-- Maps: Leaflet 1.9.4 + React Leaflet 5.0
-- UI: shadcn/ui + Radix UI + Tailwind CSS
-- Database: Supabase (production) / SQLite (legacy)
-- State: React hooks (usePersistentDrawing)
+**See CLAUDE.md for complete tech stack details**
 
-**Target Bubble.io App:**
-- Platform: Bubble.io (no-code)
-- Maps: Leafy Maps plugin (Leaflet-based)
-- JavaScript: Toolbox plugin + custom header scripts
-- Database: Bubble native tables
-- Mobile: BDK wrapper (Android/iOS)
+**Quick Reference:**
+- **Next.js**: Next.js 15 + React 19 + TypeScript + Leaflet + Supabase
+- **Bubble.io**: Leafy Maps plugin + custom JavaScript + Bubble database
 
 ### 📡 Key Integrations
 
@@ -404,313 +396,62 @@ usePersistentDrawing() → {
 
 ## 📝 Session Log
 
-### Session 1: 2025-10-06 (Planning & Research)
+### Session 1: 2025-10-06 (Initial Planning)
 
-**Duration:** ~3 hours
-
-**Participants:** User (Rafa) + Claude Code
-
-**Activities:**
-1. Initial codebase analysis
-2. Bubble.io plugin research
-3. Freehand drawing investigation review
-4. PRD analysis
-5. Screenshot UI/UX review
-6. Implementation planning
-
-**Outputs:**
-- CLAUDE.md (7KB)
-- BUBBLE_TRANSFORMATION_PLAN.md (16KB)
-- BUBBLE_IMPLEMENTATION_PLAN.md (34KB)
-- PROJECT_CONTEXT.md (this file)
-
-**Key Decisions:**
-- ✅ Use Leafy Maps extension approach
-- ✅ 8-week implementation timeline
-- ✅ Proven freehand solution validated
-- ✅ 100% feature parity goal confirmed
-
-**Status:** ✅ Planning phase complete, ready for implementation
+**Outputs:** BUBBLE_TRANSFORMATION_PLAN.md, BUBBLE_IMPLEMENTATION_PLAN.md, initial CLAUDE.md
+**Key Decisions:** ✅ Leafy Maps extension, ✅ 8-week timeline, ✅ Freehand solution validated
+**Status:** Planning complete
 
 ---
 
-### Session 2: 2025-10-06 (Entity Linking Discovery & Testing)
+### Session 2: 2025-10-06 (Entity Architecture Discovery)
 
-**Duration:** ~1 hour
-
-**Participants:** User (Rafa) + Claude Code
-
-**Context:** User tested Next.js prototype and discovered critical UX/architecture gap
-
-**Testing Performed:**
-1. Created drawing: type "land" (polygon)
-2. Created drawing: type "pump" (point) → Tried to link to land drawing ❌
-3. Created drawing: type "headgate" (point)
-4. Created drawing: type "headgate" (point) → Tried to link to first headgate ❌
-5. Observed: "Link to" dropdown shows only pre-seeded entities
-
-**Root Cause Identified:**
-- **Architecture Gap:** Drawings ≠ Drawing Entities
-- User expected: Drawing → Drawing linking
-- Actual system: Drawing → Entity linking
-- Missing: UI workflow to create Drawing Entities from Drawings
-
-**Key Findings:**
-
-1. **Database Schema Confusion**
-   - `drawings` table: Visual map elements created by users
-   - `{type}s` tables (canals, headgates, etc.): Infrastructure entities (master data)
-   - Relationship: Drawings.linkedEntity → Entity (many-to-one)
-   - **Users cannot link drawings to other drawings** - only to entities
-
-2. **Missing Seed Data**
-   - Seeded: canals, rides, headgates, meters ✅
-   - NOT seeded: pumps, pivots, lands ❌
-   - Code location: `src/lib/database-supabase.ts` lines 525-689
-   - Only 4 entity types in seed data
-
-3. **UX Gap: No Entity Creation Workflow**
-   - No UI to create Drawing Entities
-   - Current approach: Manual database insertion or seed scripts
-   - Need: "Create Entity from Drawing" button (Admin-only)
-
-**Solution Proposed:**
-
-**Feature: "Create Entity from Drawing" Button**
-
-```
-User Flow:
-1. Admin draws element on map (e.g., headgate)
-2. Drawing saved to drawings table
-3. [NEW] Button: "Create Entity from Drawing"
-4. Confirmation dialog → Creates entity in headgates table
-5. Drawing automatically linked to new entity
-6. Entity now appears in "Link to" dropdowns for other drawings
-```
-
-**Benefits:**
-- Self-service entity creation
-- Data inherits from drawing (accurate coordinates, contact info)
-- No database/seed file editing required
-- Admin-controlled quality
-- Clear visual workflow
-
-**Implementation Requirements:**
-- API endpoint: `POST /api/drawings/[id]/create-entity`
-- Details Panel: Add button (visible only for admins, valid types, unlinked drawings)
-- Validation: elementType in ['canal', 'ride', 'headgate', 'meter', 'pump', 'pivot', 'land']
-- Auto-link: Update drawing.linkedEntity after entity creation
-
-**Outputs:**
-- Detailed explanation of Drawings vs Drawing Entities architecture
-- Proposed "Create Entity from Drawing" feature specification
-- Implementation plan for entity creation workflow
-
-**Updated Understanding:**
-- Drawings = User-created visual elements on map
-- Drawing Entities = Admin-managed infrastructure master data
-- Link To = Associates drawing with entity for contact/data auto-population
-- Missing Feature = UI to promote drawings to entities
-
-**Open Question Added:**
-- How should entity creation work in Bubble.io implementation?
-  - Option A: Same "Create Entity from Drawing" button
-  - Option B: Separate admin entity management page
-  - Option C: Both approaches
-
-**Next Steps Added:**
-- [ ] Add "Create Entity from Drawing" API endpoint to Next.js prototype
-- [ ] Complete seed data for pumps, pivots, lands
-- [ ] Update Details Panel with entity creation button
-- [ ] Document entity management workflow for Bubble.io
-
-**Status:** 🔍 Architecture gap identified, solution designed, ready to implement
+**Issue Discovered:** Architecture gap - drawings cannot link to other drawings, only to entities
+**Solution Designed:** "Create Entity from Drawing" button for admins to promote drawings → entities
+**Decision:** Implement in Bubble only (skip Next.js prototype)
+**Status:** Feature designed
 
 ---
 
-### Session 3: 2025-10-09 (Feature Planning for Bubble Implementation)
+### Session 3: 2025-10-09 (Bubble Feature Planning)
 
-**Duration:** ~30 minutes
-
-**Participants:** User (Rafa) + Claude Code
-
-**Context:** User decided not to implement "Create Entity from Drawing" in Next.js prototype; instead, plan to add this feature directly in Bubble.io implementation
-
-**Activities:**
-1. Reviewed BUBBLE_IMPLEMENTATION_PLAN.md structure
-2. Analyzed TypeScript types for entity definitions
-3. Identified valid entity types vs drawing-only types
-4. Designed Bubble-specific implementation approach
-
-**Outputs:**
-- Updated BUBBLE_IMPLEMENTATION_PLAN.md with "Create Entity from Drawing" feature:
-  - Phase 1: Updated Drawing Entities metadata documentation
-  - Phase 1: Added ValidEntityTypes option set
-  - Phase 4.3: Added "Create Entity" button to Details Panel UI
-  - Phase 5.4.1: New comprehensive workflow section with:
-    - Step-by-step Bubble workflow
-    - Error handling
-    - UI specifications
-    - Benefits documentation
-  - Phase 7: Added 16 test cases for entity creation feature
-
-**Key Decisions:**
-- ✅ Skip Next.js prototype implementation
-- ✅ Integrate feature directly into Bubble.io plan
-- ✅ Admin-only feature with strict validation
-- ✅ Valid entity types: canal, ride, lateral, headgate, meter, pump, pivot, land
-- ✅ Invalid types (cannot become entities): hazard, maintenance, custom
-- ✅ Metadata field tracks drawing origin for audit trail
-
-**Implementation Details:**
-- Button visibility: Admin role + not linked + valid type
-- Confirmation dialog required before entity creation
-- Entity inherits: name, description, contact info, coordinates
-- Auto-linking after entity creation
-- Success/error feedback for user
-
-**Technical Specifications:**
-```
-ValidEntityTypes = [canal, ride, lateral, headgate, meter, pump, pivot, land]
-Entity metadata structure = {
-  createdFromDrawingId: string,
-  coordinates: array,
-  markerPosition: [lat, lng],
-  color: hex string,
-  createdAt: ISO date
-}
-```
-
-**Status:** ✅ Feature fully planned and documented in Bubble implementation
+**Work Done:** Integrated "Create Entity from Drawing" into BUBBLE_IMPLEMENTATION_PLAN.md
+**Decisions:** ✅ ValidEntityTypes option set, ✅ Admin-only workflow, ✅ Metadata tracking
+**Status:** Feature documented
 
 ---
 
-### Session 4: 2025-10-09 (Documentation Transformation & Database Schema Refactoring)
+### Session 4: 2025-10-09 (Documentation & Schema Refactor)
 
-**Duration:** ~2 hours
+**Work Done:**
+- Expanded CLAUDE.md to comprehensive Tech Lead guide (7KB → 47KB)
+- Refactored Bubble schema to use Option Sets (8 sets added/used)
+- Documented best practices and architecture patterns
 
-**Participants:** User (Rafa) + Claude Code
+**Key Changes:**
+- All predefined values → Option Sets (data integrity)
+- Built-in Bubble date fields (Created Date, Modified Date)
+- Complete API documentation and troubleshooting guide
 
-**Context:** Transform CLAUDE.md into comprehensive Tech Lead documentation and refactor Bubble database schema to use Option Sets best practices
-
-**Activities:**
-
-1. **CLAUDE.md Transformation**
-   - Read bubble.io-techlead-agents.md template for structure
-   - Analyzed all docs in docs/ folder for content
-   - Expanded CLAUDE.md from 7KB (216 lines) to 28KB (1,614 lines)
-   - Added comprehensive Tech Lead-style documentation
-
-2. **Database Schema Review & Refactoring**
-   - User identified critical issue: Option Sets defined but not used
-   - Reviewed Phase 1 Database Setup in BUBBLE_IMPLEMENTATION_PLAN.md
-   - Converted all predefined-value text fields to Option Sets
-   - Added 3 new Option Sets: ElementStatus, Categories, IssueStatus
-
-**Outputs:**
-
-**CLAUDE.md Transformation:**
-- Complete dual-implementation strategy (Next.js + Bubble.io)
-- 8-phase Bubble implementation roadmap with week-by-week breakdown
-- Database architecture for both platforms
-- Bubble.io best practices (Hub/Spoke, Status Machine, Calculated Fields)
-- JavaScript bridge pattern documentation
-- Mobile responsiveness strategy (40vh map / 60vh bottom sheet)
-- Comprehensive testing checklist and QA guidelines
-- Risk mitigation strategies and success metrics
-- Complete API endpoint documentation
-- Feature roadmap (MVP, in-progress, future)
-- Troubleshooting guide with common issues
-- Tech Lead recommendations and action items
-
-**Database Schema Refactoring:**
-
-Tables Updated with Option Sets:
-- **Drawings** (7 fields): type, elementType, status, category, approvalStatus, createdByRole + built-in date fields
-- **Drawing Entities** (2 fields): type, status + built-in date fields
-- **Issues** (2 fields): createdByRole, status + built-in Created Date
-- **Users** (1 field): role
-
-New Option Sets Added:
-- ElementStatus: active, inactive, maintenance
-- Categories: infrastructure, monitoring, other
-- IssueStatus: open, resolved
-
-Documentation Added:
-- "Why Use Option Sets?" section (6 benefits)
-- "When to Use Text Instead" guidelines
-- Clear field mapping for each Option Set
-
-**Key Decisions:**
-
-1. ✅ **CLAUDE.md as Single Source of Truth**
-   - Comprehensive reference for AI assistants and developers
-   - Includes both Next.js and Bubble.io architectures
-   - Living document to be updated as project evolves
-
-2. ✅ **Option Sets for Data Integrity**
-   - All predefined values converted from text to Option Sets
-   - Benefits: data integrity, performance, validation, UI generation
-   - Text kept for: JSON structures, user content, custom values (hex colors)
-
-3. ✅ **Built-in Bubble Date Fields**
-   - Use Created Date and Modified Date (built-in)
-   - Automatic management, no custom createdAt/modifiedAt needed
-
-4. ✅ **Color Field as Text**
-   - Kept as text to allow custom hex colors (#3B82F6)
-   - Option to add Colors Option Set for predefined palette if needed
-
-**Technical Details:**
-
-**CLAUDE.md Structure:**
-- Project Overview (business context, dual status)
-- Tech Stack (Next.js + Bubble.io)
-- 8 Implementation Phases (detailed week-by-week)
-- Critical Architecture Rules (client/server boundary)
-- Bubble.io Best Practices & Patterns
-- Key Components & State Management
-- API Routes documentation
-- Type Definitions
-- Role-Based Features
-- Testing & Debugging
-- Scalability Considerations
-- Feature Roadmap
-- Technical Constraints
-- Documentation References
-- Tech Lead Recommendations
-- Support & Maintenance Strategy
-
-**Database Best Practices Applied:**
-```
-Option Set Usage:
-✅ Drawings.type → DrawingTypes
-✅ Drawings.elementType → ElementTypes
-✅ Drawings.status → ElementStatus (NEW)
-✅ Drawings.category → Categories (NEW)
-✅ Drawings.approvalStatus → ApprovalStatus
-✅ Drawings.createdByRole → Roles
-✅ Drawing Entities.type → ValidEntityTypes
-✅ Drawing Entities.status → ElementStatus
-✅ Issues.createdByRole → Roles
-✅ Issues.status → IssueStatus (NEW)
-✅ Users.role → Roles
-
-Text Field Usage (appropriate):
-✅ Drawings.color → text (custom hex colors)
-✅ Drawings.privacy → text (complex JSON)
-✅ Drawings.coordinates → text (JSON arrays)
-✅ Drawings.metadata → text (JSON)
-✅ User content → text (names, descriptions, notes)
-```
-
-**Commits Made:**
-1. `8088d81` - Transform CLAUDE.md into comprehensive Tech Lead-style documentation
-2. `336c846` - Refactor database schema to use Bubble.io Option Sets best practices
-
-**Status:** ✅ Documentation complete, database schema follows Bubble.io best practices
+**Commits:** `8088d81`, `336c846`
+**Status:** Documentation complete
 
 ---
 
-**Last Updated:** 2025-10-09 (Session 4)
-**Next Session Focus:** Continue reviewing BUBBLE_IMPLEMENTATION_PLAN.md (Phases 2-8) or begin Bubble.io Week 1 implementation
+### Session 5: 2025-10-09 (Documentation Optimization)
+
+**Goal:** Reduce documentation redundancy and token usage
+**Analysis:** Identified 80% duplication between CLAUDE.md and BUBBLE_IMPLEMENTATION_PLAN.md (~30KB redundant)
+**Actions:**
+- Streamlined CLAUDE.md: 47KB → 13KB (-72% reduction)
+- Compressed PROJECT_CONTEXT.md session logs
+- Archived BUBBLE_TRANSFORMATION_PLAN.md (obsolete)
+- Established clear documentation hierarchy
+
+**Result:** ~45% total documentation reduction, clearer single-purpose files
+**Status:** In progress
+
+---
+
+**Last Updated:** 2025-10-09 (Session 5)
+**Next Session Focus:** Begin Bubble.io Phase 1 (Foundation & Database)
