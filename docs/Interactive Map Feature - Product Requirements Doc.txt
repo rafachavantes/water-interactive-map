@@ -1,0 +1,128 @@
+Interactive Map Feature - Product Requirements Document
+
+Product Context
+The Interactive Map Feature is a comprehensive mapping solution designed to help canal system administrators visualize, manage, and track water infrastructure, land assets, and system operations while providing controlled access to end users for viewing and reporting.
+
+Business Objectives
+- Enable efficient water system management through visual mapping
+- Streamline issue reporting and maintenance workflows
+- Provide role-based access to infrastructure data
+- Improve operational visibility and decision-making
+User Personas
+1. System Administrators -  Canal company admin staff who maintain manage assets, approve user submissions, and configure privacy
+2. Ditch Rider: Field operator assigned to specific rides/laterals; needs quick visibility, limited editing as configured by admin.
+3. End Users/Farmers - Can view allowed information and report hazards/issues; sees water data only if attached to their farm-network relationships.
+
+Feature Requirements
+
+Core Functionality
+
+1. Map Drawing and Marker Creation
+User Story: As an admin, I want to create different types of markers using various drawing tools so that I can accurately represent water system infrastructure on the map.
+
+Acceptance Criteria:
+- Admin can access drawing tools: line, shape, freehand, and point
+- Admin can select from 11 marker types: Ride, Canal, Lateral, Headgate, Meter, Pump, Pivot, Land, Hazard, Maintenance, Custom
+- Drawn markers persist on the map after creation
+- Admin can edit drawn points without deletion and redrawing
+- Shapes are stackable and don't interfere with each other
+
+2. Marker Filtering and Search
+User Story: As an admin, I want to filter and search markers by type and name so that I can quickly locate specific infrastructure elements.
+
+Acceptance Criteria:
+- Filter operates like e-commerce: click to filter, unclick to remove filter
+- By default, all markers shown when no filters selected
+- Granular filtering by exact marker name available
+- Search functionality allows quick marker lookup
+- Filter state persists during session
+
+3. Water System Data Integration
+User Story: As an admin, I want water system markers to display relevant operational data so that I can monitor system performance.
+
+Acceptance Criteria:
+- Water system markers (Ride, Canal, Lateral, Headgate) can link to database entities
+- Contact information auto-populates from linked entities or allows manual input
+- Current day's water order data displays (live telemetry excluded)
+- Max flow capacity shown when available in linked entity
+- Users only see data specific to their connected farm/system
+
+4. Issue Management
+User Story: As a user, I want to report issues directly on markers so that problems can be tracked and resolved efficiently.
+
+Acceptance Criteria:
+- Issues can be created on all markers except Maintenance and Hazard types
+Users can write a short description of the issue
+- Users can create Hazard/Issue markers requiring admin approval
+- Issue status visible in marker tooltips
+- Admin approval/rejection notifications sent to reporting user
+- Approved issues visibility controlled by admin settings. Admin can decide after approval who they allow to see the marker.
+
+5. Marker Enhancement
+User Story: As an admin, I want to add rich information to markers so that they provide comprehensive infrastructure details.
+
+Acceptance Criteria:
+- File and link attachments supported on markers
+- Notes can be added to markers
+- Short descriptions supported on markers
+- Marker metadata displays creation/modification/approval timestamps
+- Color customization available for markers
+- Markers can be renamed and deleted
+
+6. Privacy and Access Control
+User Story: As an admin, I want to control marker visibility so that sensitive information is appropriately restricted.
+
+Acceptance Criteria:
+- Three privacy levels: All Users, Ditch Riders, Admins
+- Admin access always enabled and cannot be disabled
+- Additional individual users can be granted access
+- Privacy settings enforced across all map views
+
+7. Mode Management
+User Story: As a map user, I want appropriate interface modes so that I can perform relevant actions based on my role.
+
+Acceptance Criteria:
+- Admins have Edit and View modes
+- Edit mode enables all drawing and management functions
+- View mode allows role preview functionality for admins
+- Users default to view-only mode with hazard/issue reporting capability
+- Mode toggle visible only to admins
+
+8. Location Services
+User Story: As a user, I want location-based features so that I can navigate and orient myself on the map.
+
+Acceptance Criteria:
+- Auto-detect user location on first visit with appropriate zoom level
+- Location search integrated with Google Maps API
+- Coordinate 'jumping' functionality available
+- Map auto centers on existing markers when present on page load
+- Export map and drawings as image using Leaflet screenshot function
+
+9. Marker Interactions
+User Story: As a user, I want interactive marker features so that I can access detailed information and external navigation.
+
+Acceptance Criteria:
+- Hover tooltips show: marker name, issue status, description
+- Click markers to copy coordinates
+- Direct links to open location in Google/Apple Maps
+- Contact information auto-populates from entity data or manual input
+- Canal flood/stormwater management setting (Utah-specific)
+
+
+Other technical requirements
+Mobile (BDK wrapper)
+App should be mobile responsive. 
+Map function should work on Android and iOS. Check BN native plugin if they have a way to trigger the native map app. If not, we can just provide coordinates for users to copy to their map app
+When user clicks on a marker, perhaps we can center the marker on the map. This is because, on mobile with the bottom sheet open, the marker may go out of view. It's a nice to have, not necessary if difficult to implement. In the next.js app prototype, I tried to show what that centering interaction looks like, though it's a little unstable sometimes (so don't copy that part of the code).
+
+Future Considerations
+- ARCGIS data import functionality
+- Advanced telemetry data integration
+- Enhanced mobile application features
+- Expanded notification system
+
+Other bubble stuff
+Water orders can be calculated based on daily_recurring_order_item data type. That is linked to daily_recurring_order. You may look at the Running Order tab, or the analytics tab. All orders are stored as CFS. And then we have conversion ratios stored in data type CFS to Unit set to convert them
+In this case you don't have to deal with units. Max flow and order shall be shown in CFS only for now.
+
+Push to subapps. This is used when you pushed to live on the main app and want to push the updates to the sub apps.
