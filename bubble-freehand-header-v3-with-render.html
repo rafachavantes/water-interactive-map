@@ -1,0 +1,418 @@
+<!-- ========================================
+     WATER INFRASTRUCTURE MAP - FREEHAND DRAWING v3
+     Bubble.io Page Header Script
+     WITH AUTO-RENDERING after drawing completes
+     ======================================== -->
+
+<script>
+/* ===== MAP CAPTURE & FREEHAND DRAWING SYSTEM v3 =====
+   Now with automatic rendering option
+*/
+
+(function() {
+  'use strict';
+
+  if (window.__leafy_freehand_installed) {
+    console.log('⚠️ Freehand header already installed, skipping...');
+    return;
+  }
+  window.__leafy_freehand_installed = true;
+
+  const MAX_CAPTURE_ATTEMPTS = 80;
+  const RETRY_INTERVAL_MS = 250;
+
+  // ===== DOUGLAS-PEUCKER PATH SIMPLIFICATION =====
+
+  function douglasPeucker(points, tolerance) {
+    if (points.length <= 2) return points;
+    let maxDist = 0;
+    let maxIndex = 0;
+    const start = points[0];
+    const end = points[points.length - 1];
+    for (let i = 1; i < points.length - 1; i++) {
+      const dist = perpendicularDistance(points[i], start, end);
+      if (dist > maxDist) {
+        maxDist = dist;
+        maxIndex = i;
+      }
+    }
+    if (maxDist > tolerance) {
+      const left = douglasPeucker(points.slice(0, maxIndex + 1), tolerance);
+      const right = douglasPeucker(points.slice(maxIndex), tolerance);
+      return left.slice(0, -1).concat(right);
+    } else {
+      return [start, end];
+    }
+  }
+
+  function perpendicularDistance(point, lineStart, lineEnd) {
+    const [x0, y0] = point;
+    const [x1, y1] = lineStart;
+    const [x2, y2] = lineEnd;
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const mag = Math.sqrt(dx * dx + dy * dy);
+    if (mag === 0) return Math.sqrt((x0 - x1) ** 2 + (y0 - y1) ** 2);
+    const u = ((x0 - x1) * dx + (y0 - y1) * dy) / (mag * mag);
+    const clampedU = Math.max(0, Math.min(1, u));
+    const closestX = x1 + clampedU * dx;
+    const closestY = y1 + clampedU * dy;
+    return Math.sqrt((x0 - closestX) ** 2 + (y0 - closestY) ** 2);
+  }
+
+  window.simplifyPath = function(points, tolerance = 0.0001) {
+    if (!points || points.length < 2) return points;
+    return douglasPeucker(points, tolerance);
+  };
+
+  // ===== MAP INSTANCE CAPTURE =====
+
+  function isMapLike(obj) {
+    try {
+      return obj && typeof obj.getCenter === 'function' && obj._container !== undefined;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function captureMap(map) {
+    if (!isMapLike(map)) {
+      console.warn('⚠️ captureMap: not a valid Leaflet map', map);
+      return false;
+    }
+    window.__leafy_found_map = map;
+    console.log('✅ Leaflet map captured -> window.__leafy_found_map', map);
+    if (typeof window.bubble_fn_mapReady === 'function') {
+      window.bubble_fn_mapReady();
+    }
+    return true;
+  }
+
+  function installLeafletHook() {
+    if (!(window.L && window.L.Map)) return false;
+    if (window.__leafy_map_hook_installed) return true;
+
+    const originalInit = window.L.Map.prototype.initialize;
+    window.L.Map.prototype.initialize = function(id, options) {
+      const result = originalInit.apply(this, arguments);
+      const container = this._container || (this.getContainer && this.getContainer());
+      const leafyEl = document.querySelector('#leafy_main') || document.querySelector('.leaflet-container') || document.querySelector('[id^="leafy"]');
+      if (container && leafyEl && (container === leafyEl || leafyEl.contains(container) || (container.contains && container.contains(leafyEl)))) {
+        captureMap(this);
+      }
+      return result;
+    };
+
+    if (typeof window.L.map === 'function') {
+      const originalFactory = window.L.map;
+      window.L.map = function() {
+        const map = originalFactory.apply(this, arguments);
+        const container = map._container || (map.getContainer && map.getContainer());
+        const leafyEl = document.querySelector('#leafy_main') || document.querySelector('.leaflet-container') || document.querySelector('[id^="leafy"]');
+        if (container && leafyEl && (container === leafyEl || leafyEl.contains(container) || (container.contains && container.contains(leafyEl)))) {
+          captureMap(map);
+        }
+        return map;
+      };
+    }
+
+    window.__leafy_map_hook_installed = true;
+    console.log('🪝 Leaflet map hooks installed');
+    return true;
+  }
+
+  function tryFindExistingMap() {
+    try {
+      if (window.__leafy_found_map && isMapLike(window.__leafy_found_map)) return window.__leafy_found_map;
+      for (const key of Object.keys(window)) {
+        try {
+          const val = window[key];
+          if (isMapLike(val)) { captureMap(val); return val; }
+          if (val && typeof val === 'object') {
+            if (isMapLike(val.mymap)) { captureMap(val.mymap); return val.mymap; }
+            if (val.data && isMapLike(val.data.mymap)) { captureMap(val.data.mymap); return val.data.mymap; }
+          }
+        } catch (e) {}
+      }
+      const leafyEl = document.querySelector('#leafy_main') || document.querySelector('.leaflet-container') || document.querySelector('[id^="leafy"]');
+      if (leafyEl) {
+        if (window.jQuery) {
+          try {
+            const jqData = window.jQuery(leafyEl).data() || {};
+            for (const key of Object.keys(jqData)) {
+              const val = jqData[key];
+              if (val && val.data && isMapLike(val.data.mymap)) { captureMap(val.data.mymap); return val.data.mymap; }
+            }
+          } catch (e) {}
+        }
+        let parent = leafyEl;
+        const mapProps = ['_leaflet_map', '__leaflet_map', 'leafyMap', 'leafletMap', 'mymap', 'map', 'instance'];
+        for (let i = 0; parent && i < 8; i++) {
+          for (const prop of mapProps) {
+            if (parent[prop] && isMapLike(parent[prop])) { captureMap(parent[prop]); return parent[prop]; }
+            if (parent[prop] && parent[prop].data && isMapLike(parent[prop].data.mymap)) { captureMap(parent[prop].data.mymap); return parent[prop].data.mymap; }
+          }
+          parent = parent.parentElement;
+        }
+      }
+    } catch (e) { console.warn('tryFindExistingMap error:', e); }
+    return null;
+  }
+
+  // ===== CUSTOM FREEHAND DRAWING TOOL =====
+
+  window.__leafy_freehand = {
+    isDrawing: false,
+    currentPath: [],
+    previewLayer: null,
+    autoRender: false,  // NEW: Set to true to keep drawing on map
+    _handlers: {},
+
+    start: function(options) {
+      options = options || {};
+      const map = window.__leafy_found_map;
+
+      if (!map || !isMapLike(map)) {
+        console.error('❌ Map not found. Run window.__leafy_try_capture_now()');
+        return;
+      }
+
+      const self = this;
+      const container = map.getContainer();
+
+      // Set auto-render option
+      if (options.autoRender !== undefined) {
+        self.autoRender = options.autoRender;
+      }
+
+      map.dragging.disable();
+      container.style.cursor = 'crosshair';
+
+      console.log('🎨 Freehand mode enabled. Click and drag to draw.');
+      if (self.autoRender) console.log('🖼️ Auto-render: ON (drawing will stay on map)');
+
+      const onMouseDown = function(e) {
+        e.preventDefault();
+        const containerPoint = map.mouseEventToContainerPoint(e);
+        const latlng = map.containerPointToLatLng(containerPoint);
+        self.isDrawing = true;
+        self.currentPath = [[latlng.lat, latlng.lng]];
+
+        const onMouseMove = function(e) {
+          if (!self.isDrawing) return;
+          const containerPoint = map.mouseEventToContainerPoint(e);
+          const latlng = map.containerPointToLatLng(containerPoint);
+          self.currentPath.push([latlng.lat, latlng.lng]);
+
+          if (self.previewLayer) map.removeLayer(self.previewLayer);
+          self.previewLayer = L.polyline(self.currentPath, {
+            color: '#3B82F6',
+            weight: 3,
+            opacity: 0.8,
+            dashArray: '5, 5'
+          }).addTo(map);
+        };
+
+        const onMouseUp = function(e) {
+          self.isDrawing = false;
+          container.removeEventListener('mousemove', onMouseMove);
+          container.removeEventListener('mouseup', onMouseUp);
+          document.removeEventListener('mouseup', onMouseUp);
+          map.dragging.enable();
+          container.style.cursor = '';
+
+          if (self.currentPath.length >= 2) {
+            const simplified = window.simplifyPath(self.currentPath, 0.0001);
+            console.log(`📉 Path simplified: ${self.currentPath.length} -> ${simplified.length} points`);
+
+            const geojson = {
+              type: "Feature",
+              geometry: {
+                type: "LineString",
+                coordinates: simplified.map(p => [p[1], p[0]])
+              },
+              properties: {
+                tool: 'freehand',
+                color: '#3B82F6',
+                strokeWeight: 3,
+                originalPointCount: self.currentPath.length,
+                simplifiedPointCount: simplified.length
+              }
+            };
+
+            window.__leafy_last_freehand = geojson;
+            console.log('✅ Freehand complete -> window.__leafy_last_freehand');
+
+            // Clear dashed preview
+            if (self.previewLayer) {
+              map.removeLayer(self.previewLayer);
+              self.previewLayer = null;
+            }
+
+            // AUTO-RENDER: Draw permanent layer if enabled
+            if (self.autoRender) {
+              const leafletCoords = geojson.geometry.coordinates.map(c => [c[1], c[0]]);
+              const permanentLayer = L.polyline(leafletCoords, {
+                color: geojson.properties.color,
+                weight: geojson.properties.strokeWeight,
+                opacity: 1  // Solid line
+              }).addTo(map);
+
+              console.log('🖼️ Auto-rendered on map (permanent)');
+
+              // Store reference
+              if (!window.__leafy_rendered_layers) window.__leafy_rendered_layers = [];
+              window.__leafy_rendered_layers.push(permanentLayer);
+            }
+
+            // Notify Bubble
+            if (typeof window.bubble_fn_freehandComplete === 'function') {
+              window.bubble_fn_freehandComplete(JSON.stringify(geojson));
+            }
+          } else {
+            console.log('⚠️ Drawing too short, discarded.');
+            if (self.previewLayer) {
+              map.removeLayer(self.previewLayer);
+              self.previewLayer = null;
+            }
+          }
+
+          self.currentPath = [];
+          container.removeEventListener('mousedown', onMouseDown);
+        };
+
+        container.addEventListener('mousemove', onMouseMove);
+        container.addEventListener('mouseup', onMouseUp);
+        document.addEventListener('mouseup', onMouseUp);
+        self._handlers.onMouseMove = onMouseMove;
+        self._handlers.onMouseUp = onMouseUp;
+      };
+
+      container.addEventListener('mousedown', onMouseDown);
+      self._handlers.onMouseDown = onMouseDown;
+    },
+
+    stop: function() {
+      const map = window.__leafy_found_map;
+      if (!map || !isMapLike(map)) return;
+      const container = map.getContainer();
+      this.isDrawing = false;
+      this.currentPath = [];
+      if (this.previewLayer) {
+        map.removeLayer(this.previewLayer);
+        this.previewLayer = null;
+      }
+      map.dragging.enable();
+      container.style.cursor = '';
+      if (this._handlers.onMouseDown) container.removeEventListener('mousedown', this._handlers.onMouseDown);
+      if (this._handlers.onMouseMove) container.removeEventListener('mousemove', this._handlers.onMouseMove);
+      if (this._handlers.onMouseUp) {
+        container.removeEventListener('mouseup', this._handlers.onMouseUp);
+        document.removeEventListener('mouseup', this._handlers.onMouseUp);
+      }
+      this._handlers = {};
+      console.log('🛑 Freehand stopped.');
+    },
+
+    clearLayers: function() {
+      const map = window.__leafy_found_map;
+      if (!map || !isMapLike(map)) return;
+      if (this.previewLayer) {
+        map.removeLayer(this.previewLayer);
+        this.previewLayer = null;
+      }
+      console.log('🧹 Preview layers cleared.');
+    },
+
+    clearAllRendered: function() {
+      const map = window.__leafy_found_map;
+      if (!map || !isMapLike(map)) return;
+      if (window.__leafy_rendered_layers) {
+        window.__leafy_rendered_layers.forEach(layer => map.removeLayer(layer));
+        window.__leafy_rendered_layers = [];
+        console.log('🧹 All rendered layers cleared.');
+      }
+    }
+  };
+
+  // ===== HELPER FUNCTIONS =====
+
+  window.createGeoJSON = function(type, coordinates, properties) {
+    return {
+      type: "Feature",
+      geometry: { type: type, coordinates: coordinates },
+      properties: properties || {}
+    };
+  };
+
+  window.calculateCenter = function(coordinates) {
+    if (!coordinates || coordinates.length === 0) return null;
+    let sumLat = 0, sumLng = 0;
+    if (Array.isArray(coordinates[0])) {
+      coordinates.forEach(coord => {
+        sumLat += coord[0];
+        sumLng += coord[1];
+      });
+    } else {
+      return coordinates;
+    }
+    return [sumLat / coordinates.length, sumLng / coordinates.length];
+  };
+
+  // NEW: Render function for Bubble workflows
+  window.renderDrawingOnMap = function(geojsonString) {
+    const map = window.__leafy_found_map;
+    if (!map) {
+      console.error('❌ Map not found');
+      return null;
+    }
+
+    const geojson = typeof geojsonString === 'string' ? JSON.parse(geojsonString) : geojsonString;
+    const leafletCoords = geojson.geometry.coordinates.map(c => [c[1], c[0]]);
+
+    const layer = L.polyline(leafletCoords, {
+      color: geojson.properties.color || '#3B82F6',
+      weight: geojson.properties.strokeWeight || 3,
+      opacity: 1
+    }).addTo(map);
+
+    console.log('✅ Drawing rendered on map');
+    return layer;
+  };
+
+  // ===== AUTO-CAPTURE SYSTEM =====
+
+  let captureAttempts = 0;
+  const captureInterval = setInterval(function() {
+    captureAttempts++;
+    if (window.L && window.L.Map) installLeafletHook();
+    const found = tryFindExistingMap();
+    if (found) {
+      clearInterval(captureInterval);
+      console.log('🎉 Map capture successful! Freehand tool ready.');
+      return;
+    }
+    if (captureAttempts >= MAX_CAPTURE_ATTEMPTS) {
+      clearInterval(captureInterval);
+      console.log('⏱️ Attempts exhausted. Hook remains active.');
+    }
+  }, RETRY_INTERVAL_MS);
+
+  document.addEventListener('DOMContentLoaded', function() { tryFindExistingMap(); installLeafletHook(); });
+  window.addEventListener('load', function() { tryFindExistingMap(); installLeafletHook(); });
+
+  window.__leafy_try_capture_now = function() {
+    tryFindExistingMap();
+    installLeafletHook();
+    console.log('🔄 Manual capture triggered.');
+  };
+
+  console.log('🚀 Leafy Freehand v3 initialized (with auto-render option)');
+  console.log('📚 Commands:');
+  console.log('  - window.__leafy_freehand.start()                    → Draw (clears after)');
+  console.log('  - window.__leafy_freehand.start({autoRender: true}) → Draw (keeps on map)');
+  console.log('  - window.__leafy_freehand.clearAllRendered()        → Clear all drawings');
+  console.log('  - window.renderDrawingOnMap(geojson)                → Render any GeoJSON');
+
+})();
+</script>
