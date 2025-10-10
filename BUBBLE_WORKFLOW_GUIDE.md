@@ -401,240 +401,191 @@ Or use a nicer notification:
 
 ## 🔄 Step 4: Load Drawings on Page Load
 
+> **See STEP_4_LOAD_DRAWINGS.md for detailed quick reference**
+
+### Overview
+
+When the page loads, automatically query all approved drawings from the database and render them on the map with:
+- Correct coordinate format conversion (GeoJSON → Leaflet)
+- Appropriate layer types (point, line, polygon)
+- Clickable layers for selection
+- Center markers for easier interaction
+- Automatic map bounds fitting
+
 ### 4.1 Create Page Load Workflow
 
-**Event:** When Page is loaded
+1. Go to **Workflow tab**
+2. Click **"Click here to add an event..."**
+3. Select **"General" → "When Page is loaded"**
 
-**Action 1:** Plugins → Toolbox → Run JavaScript
+### 4.2 Add "Load All Drawings" JavaScript Action
 
-**Code:**
+**Action:** Plugins → Toolbox → Run JavaScript
+
+**Code:** (See `bubble-load-drawings.js` or copy from below)
 
 ```javascript
-// Wait for map to fully initialize
-setTimeout(function() {
+console.log('🔄 Step 4: Loading drawings from database...');
+
+// BUBBLE DATA INJECTION - Replace <BUBBLE_DATA_INJECTION> with dynamic data
+var drawings = <BUBBLE_DATA_INJECTION>;
+
+console.log('📊 Found', drawings.length, 'approved drawings to render');
+
+var renderAllDrawings = function() {
   var map = window.__leafy_found_map;
 
   if (!map) {
-    console.error('❌ Map not found - retrying in 1 second...');
-    setTimeout(arguments.callee, 1000);  // Retry
+    console.log('⏳ Map not ready yet, waiting 500ms...');
+    setTimeout(renderAllDrawings, 500);
     return;
   }
 
-  console.log('✅ Map ready - preparing to load drawings');
+  console.log('✅ Map ready, starting to render', drawings.length, 'drawings');
 
-  // Initialize storage for layers
-  window.__drawing_layers = {};
-
-  // Signal Bubble to start loading drawings
-  console.log('📡 Ready for Bubble to load drawings');
-
-}, 500);
-```
-
----
-
-### 4.2 Create "Render Single Drawing" Custom Event
-
-**Event Name:** `Render Single Drawing`
-
-**Parameters:**
-
-| Parameter | Type | Notes |
-|-----------|------|-------|
-| drawing_id | text | Unique ID from database |
-| coordinates | text | JSON array of coordinates |
-| color | text | Hex color code |
-| drawing_type | text | "polyline" or "polygon" |
-| marker_pos | text | JSON [lat, lng] for center marker |
-
----
-
-### 4.3 Set Up Repeating Group (Hidden)
-
-**Why?** Bubble needs a way to loop through drawings and trigger the custom event for each.
-
-1. **Add Repeating Group** to page (can be 1px x 1px)
-2. **Make invisible** (uncheck "This element is visible")
-3. **Data source:** Search for Drawings
-   - Constraint: approvalStatus = "approved"
-   - Constraint: (Add privacy filter here using custom backend workflow)
-4. **Layout:** 1 column, 1 row (we're not displaying it)
-
----
-
-### 4.4 Add "Trigger Event" Action to Page Load Workflow
-
-**Action 2 (after JavaScript in 4.1):**
-
-**Type:** Workflow → Schedule Custom Workflow on a List
-
-Wait... Bubble has a simpler way!
-
-**Better approach: Use a recursive workflow**
-
-Actually, **simplest approach: Use "Display list" action**
-
-Let me correct this:
-
-**Action 2: Loop Through Drawings**
-
-1. **Add Action:** Workflow → For each item in a list
-2. **List:** Do a search for Drawings
-   - Type: Drawing
-   - Constraint: approvalStatus = "approved"
-   - Constraint: Advanced → Run backend workflow "Can User Access Drawing" = "yes"
-3. **Action within loop:** Trigger custom event "Render Single Drawing"
-   - drawing_id: This Drawing's unique id
-   - coordinates: This Drawing's coordinates
-   - color: This Drawing's color
-   - drawing_type: This Drawing's type
-   - marker_pos: This Drawing's markerPosition
-
-**Wait - Bubble doesn't have "For each" in frontend!**
-
-Let me fix this with the correct Bubble approach:
-
----
-
-### 4.4 CORRECTED: Load Drawings Properly
-
-Bubble doesn't have a native "for each" loop in client-side workflows. Here are the correct options:
-
-#### Option A: Use Repeating Group + Workflow on List
-
-1. **Keep the hidden Repeating Group** from 4.3
-2. **Add Action:** Element Actions → Display list
-   - Element: repeating_group_drawings
-   - List: Do a search for Drawings (with constraints)
-
-3. **Create workflow:** When repeating_group_drawings's list of Drawings is loaded
-   - **Add Action:** Plugins → Toolbox → Run JavaScript
-
-   **Code:**
-   ```javascript
-   // This runs once after all drawings are loaded
-   var drawings = [<repeating_group_drawings's list of Drawings:format as text>];
-
-   console.log('📊 Loading', drawings.length, 'drawings...');
-
-   // We'll trigger rendering for each via a different method
-   // (See Option B for better approach)
-   ```
-
-#### Option B: Single JavaScript Action (RECOMMENDED)
-
-**Better approach:** Load all drawings at once in JavaScript.
-
-**Action 2 (in Page Load workflow):**
-
-**Plugins → Toolbox → Run JavaScript**
-
-**Code:**
-
-```javascript
-// BUBBLE DATA INJECTION
-var drawings = [
-  <Do a search for Drawings:each item's {
-    "id": unique id,
-    "coords": coordinates,
-    "color": color,
-    "type": type,
-    "markerPos": markerPosition
-  }>
-];
-
-console.log('📊 Loading', drawings.length, 'drawings from database...');
-
-// Wait for map
-var tryRender = function() {
-  var map = window.__leafy_found_map;
-
-  if (!map) {
-    console.log('⏳ Waiting for map...');
-    setTimeout(tryRender, 500);
-    return;
+  if (!window.__drawing_layers) {
+    window.__drawing_layers = {};
   }
 
-  console.log('✅ Map ready - rendering drawings...');
+  var allLayers = [];
 
-  window.__drawing_layers = {};
-
-  drawings.forEach(function(drawing) {
+  drawings.forEach(function(drawing, index) {
     try {
-      var coords = JSON.parse(drawing.coords);
-      var markerPos = JSON.parse(drawing.markerPos);
-      var leafletCoords = coords.map(function(c) { return [c[1], c[0]]; });
+      console.log('🖼️ Rendering drawing', (index + 1) + '/' + drawings.length, '- ID:', drawing.id);
 
-      // Create layer
+      var coords = JSON.parse(drawing.coords);
+      var markerPos = drawing.markerPos ? JSON.parse(drawing.markerPos) : null;
+
+      // Convert GeoJSON [lng, lat] to Leaflet [lat, lng]
+      var leafletCoords;
+      if (drawing.type === 'point') {
+        leafletCoords = [coords[1], coords[0]];
+      } else {
+        leafletCoords = coords.map(function(c) { return [c[1], c[0]]; });
+      }
+
+      // Create appropriate Leaflet layer
       var layer;
-      if (drawing.type === 'polygon') {
+      if (drawing.type === 'point') {
+        layer = L.marker(leafletCoords, {
+          icon: L.divIcon({
+            html: '<div style="width:24px;height:24px;background:' + drawing.color + ';border:3px solid white;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,0.3);"></div>',
+            iconSize: [24, 24],
+            className: 'drawing-marker-point'
+          })
+        }).addTo(map);
+      } else if (drawing.type === 'polygon') {
         layer = L.polygon(leafletCoords, {
           color: drawing.color,
           weight: 3,
-          fillOpacity: 0.3
+          fillOpacity: 0.3,
+          opacity: 1
         }).addTo(map);
       } else {
         layer = L.polyline(leafletCoords, {
           color: drawing.color,
-          weight: 3
+          weight: 3,
+          opacity: 1
         }).addTo(map);
       }
 
-      // Store reference
-      window.__drawing_layers[drawing.id] = layer;
-
-      // Add center marker for selection
-      var marker = L.marker([markerPos[0], markerPos[1]], {
-        icon: L.divIcon({
-          html: '<div style="width:20px;height:20px;border-radius:50%;background:' + drawing.color + ';border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);"></div>',
-          iconSize: [20, 20],
-          className: 'drawing-marker'
-        })
-      }).addTo(map);
-
-      // Click handlers
-      var onSelect = function() {
-        console.log('📍 Drawing selected:', drawing.id);
+      // Add click handler
+      layer.on('click', function(e) {
+        L.DomEvent.stopPropagation(e);
         if (window.bubble_fn_drawing_selected) {
           bubble_fn_drawing_selected({ output1: drawing.id });
         }
+      });
+
+      // Add center marker (except for points)
+      var centerMarker = null;
+      if (markerPos && drawing.type !== 'point') {
+        centerMarker = L.marker([markerPos[0], markerPos[1]], {
+          icon: L.divIcon({
+            html: '<div style="width:16px;height:16px;background:' + drawing.color + ';border:2px solid white;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,0.4);cursor:pointer;"></div>',
+            iconSize: [16, 16],
+            className: 'drawing-marker-center'
+          })
+        }).addTo(map);
+
+        centerMarker.on('click', function(e) {
+          L.DomEvent.stopPropagation(e);
+          if (window.bubble_fn_drawing_selected) {
+            bubble_fn_drawing_selected({ output1: drawing.id });
+          }
+        });
+      }
+
+      // Store references
+      window.__drawing_layers[drawing.id] = {
+        layer: layer,
+        marker: centerMarker,
+        data: drawing
       };
 
-      layer.on('click', onSelect);
-      marker.on('click', onSelect);
+      allLayers.push(layer);
 
-    } catch (e) {
-      console.error('Error rendering drawing', drawing.id, e);
+    } catch (error) {
+      console.error('❌ Error rendering drawing', drawing.id, error);
     }
   });
 
-  console.log('✅ Rendered', drawings.length, 'drawings on map');
+  console.log('🎉 All drawings rendered! Total:', allLayers.length);
 
-  // Fit map to show all drawings
-  if (drawings.length > 0) {
-    var group = L.featureGroup(Object.values(window.__drawing_layers));
-    map.fitBounds(group.getBounds(), { padding: [50, 50], maxZoom: 15 });
+  // Fit map bounds
+  if (allLayers.length > 0) {
+    try {
+      var group = L.featureGroup(allLayers);
+      map.fitBounds(group.getBounds(), { padding: [50, 50], maxZoom: 15 });
+    } catch (error) {
+      console.warn('⚠️ Could not fit bounds:', error);
+    }
   }
 };
 
-tryRender();
+renderAllDrawings();
 ```
 
-**How to inject Bubble data:**
+### 4.3 Insert Bubble Dynamic Data
 
-The part `<Do a search for Drawings:each item's {...}>` needs special formatting:
+Replace `<BUBBLE_DATA_INJECTION>` with Bubble's search:
 
-1. Click where code says `<Do a search for...>`
-2. Select "Do a search for"
-3. Type: Drawing
-4. Constraints: approvalStatus = "approved", etc.
-5. Then click ":each item's"
-6. In the format dialog, select "arbitrary text"
-7. Type this EXACT format:
+1. **Click on** `<BUBBLE_DATA_INJECTION>` in the code
+2. **Insert dynamic data** → "Do a search for"
+3. **Type:** Drawings
+4. **Constraints:**
+   - approvalStatus = "approved"
+   - (Add privacy filter if needed)
+5. **Click ":each item's"** → Select "arbitrary text"
+6. **Format:**
    ```
-   {"id":"<This Drawing's unique id>","coords":"<This Drawing's coordinates>","color":"<This Drawing's color>","type":"<This Drawing's type>","markerPos":"<This Drawing's markerPosition>"}
+   {"id":"<This Drawing's unique id>","coords":"<This Drawing's coordinates>","color":"<This Drawing's color>","type":"<This Drawing's type>","markerPos":"<This Drawing's markerPosition>","name":"<This Drawing's name>","elementType":"<This Drawing's elementType>"}
    ```
-8. For each `<This Drawing's...>`, click and select the field dynamically
+7. **Click each `<This Drawing's ...>`** and select the corresponding field
+8. **Wrap in square brackets** `[...]` to create array
+
+**Final format example:**
+```javascript
+var drawings = [{"id":"abc123","coords":"[[-47.6, -23.5], ...]","color":"#3B82F6",...}, {...}];
+```
+
+### 4.4 Expected Results
+
+**Console output:**
+```
+🔄 Step 4: Loading drawings from database...
+📊 Found 5 approved drawings to render
+✅ Map ready, starting to render 5 drawings
+🖼️ Rendering drawing 1/5 - ID: abc123
+...
+🎉 All drawings rendered! Total: 5
+```
+
+**Visual results:**
+- All approved drawings appear on map
+- Drawings in correct location (Brazil: lat ~-23, lng ~-47)
+- Center markers visible on lines/polygons
+- Map automatically zooms to show all drawings
 
 ---
 
