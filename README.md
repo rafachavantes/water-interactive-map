@@ -91,22 +91,22 @@ npm run dev
 ## Project Structure
 
 ```
-src/
-├── app/                 # Next.js app router
-│   ├── globals.css     # Global styles with Tailwind
-│   ├── layout.tsx      # Root layout
-│   └── page.tsx        # Main application page
-├── components/          # React components
-│   ├── ui/             # shadcn/ui components
-│   ├── InteractiveMap.tsx    # Main map component
-│   ├── LayerFilters.tsx      # Left sidebar filters
-│   ├── ElementDetailsPanel.tsx # Floating details panel
-│   └── DrawingTools.tsx      # Bottom drawing toolbar
-├── lib/                # Utilities and data
-│   ├── utils.ts        # Utility functions
-│   └── mapData.ts      # Sample data and constants
-└── types/              # TypeScript type definitions
-    └── index.ts        # Shared interfaces
+water-interactive-map/
+├── bubble/              # Bubble.io production implementation
+│   ├── docs/           # Bubble-specific documentation
+│   └── scripts/        # Page header scripts & workflows
+├── nextjs/             # Next.js reference implementation
+│   ├── docs/           # Next.js-specific documentation
+│   ├── scripts/        # Utility scripts
+│   └── sql/            # Supabase migration files
+├── src/                # Next.js source code
+│   ├── app/           # Next.js app router
+│   ├── components/    # React components
+│   ├── lib/           # Utilities and services
+│   └── types/         # TypeScript definitions
+├── docs/              # Project-wide documentation
+├── backups/           # Data backups
+└── public/            # Static assets
 ```
 
 ## Usage
@@ -151,16 +151,16 @@ This project has comprehensive documentation for both developers and AI assistan
 | Document | Purpose | Audience |
 |----------|---------|----------|
 | **CLAUDE.md** | Quick reference & AI guidance | AI assistants, new developers |
-| **docs/BUBBLE_IMPLEMENTATION_PLAN.md** | Detailed Bubble.io implementation | Bubble developers |
+| **bubble/docs/BUBBLE_IMPLEMENTATION_PLAN.md** | Detailed Bubble.io implementation | Bubble developers |
 | **docs/PROJECT_CONTEXT.md** | Session history & decisions | All team members |
-| **docs/freehand_draw_investigation_report.md** | Freehand drawing solution | Technical implementers |
-| **AGENTS.md** | Next.js architecture rules | Next.js developers |
-| **SUPABASE_SETUP.md** | Database setup guide | Backend developers |
+| **bubble/docs/freehand_draw_investigation_report.md** | Freehand drawing solution | Technical implementers |
+| **nextjs/docs/AGENTS.md** | Next.js architecture rules | Next.js developers |
+| **nextjs/docs/SUPABASE_SETUP.md** | Database setup guide | Backend developers |
 
 **Start Here:**
 - **New to project**: Read `CLAUDE.md` → `docs/PROJECT_CONTEXT.md`
-- **Implementing Bubble**: Read `docs/BUBBLE_IMPLEMENTATION_PLAN.md`
-- **Working with Next.js**: Read `AGENTS.md` + `CLAUDE.md`
+- **Implementing Bubble**: Read `bubble/docs/BUBBLE_IMPLEMENTATION_PLAN.md`
+- **Working with Next.js**: Read `nextjs/docs/AGENTS.md` + `CLAUDE.md`
 
 ## Contributing
 

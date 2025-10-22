@@ -106,7 +106,7 @@ var renderAllDrawings = function() {
 
         // Trigger Bubble selection workflow (Step 5)
         if (window.bubble_fn_drawing_selected) {
-          bubble_fn_drawing_selected({ output1: drawing.id });
+          bubble_fn_drawing_selected(drawing.id);
         }
       });
 
@@ -127,7 +127,7 @@ var renderAllDrawings = function() {
           console.log('🖱️ Center marker clicked:', drawing.id);
 
           if (window.bubble_fn_drawing_selected) {
-            bubble_fn_drawing_selected({ output1: drawing.id });
+            bubble_fn_drawing_selected(drawing.id);
           }
         });
 

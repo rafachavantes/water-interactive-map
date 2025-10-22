@@ -31,10 +31,10 @@
 | Document | Purpose | When to Use |
 |----------|---------|-------------|
 | **CLAUDE.md** (this file) | AI assistant quick reference | Every session start |
-| **docs/BUBBLE_IMPLEMENTATION_PLAN.md** | Detailed 8-week Bubble implementation | Building Bubble features |
+| **bubble/docs/BUBBLE_IMPLEMENTATION_PLAN.md** | Detailed 8-week Bubble implementation | Building Bubble features |
 | **docs/PROJECT_CONTEXT.md** | Session history & decisions | Catch up on latest work |
-| **docs/freehand_draw_investigation_report.md** | Proven freehand drawing solution | Implementing map drawing |
-| **AGENTS.md** | Next.js client/server architecture | Working with Next.js code |
+| **bubble/docs/freehand_draw_investigation_report.md** | Proven freehand drawing solution | Implementing map drawing |
+| **nextjs/docs/AGENTS.md** | Next.js client/server architecture | Working with Next.js code |
 | **README.md** | Project setup & installation | Initial setup |
 
 ---
@@ -211,7 +211,7 @@ curl https://[app].vercel.app/api/drawings > backup.json
 ### 1. Freehand Drawing (Proven Solution)
 
 ```javascript
-// From freehand_draw_investigation_report.md
+// From bubble/docs/freehand_draw_investigation_report.md
 window.__leafy_found_map // Leaflet map instance (captured)
 
 // Enable freehand mode
@@ -283,7 +283,7 @@ const InteractiveMap = dynamic(
 
 ## 🗺️ Bubble.io Implementation Phases
 
-**See docs/BUBBLE_IMPLEMENTATION_PLAN.md for complete details**
+**See bubble/docs/BUBBLE_IMPLEMENTATION_PLAN.md for complete details**
 
 | Phase | Focus | Timeline |
 |-------|-------|----------|
@@ -311,7 +311,7 @@ const InteractiveMap = dynamic(
 **Option Sets** (use for data integrity):
 - DrawingTypes, ElementTypes, ValidEntityTypes, Roles, ApprovalStatus, ElementStatus, Categories, IssueStatus
 
-**See docs/BUBBLE_IMPLEMENTATION_PLAN.md Phase 1 for complete schema**
+**See bubble/docs/BUBBLE_IMPLEMENTATION_PLAN.md Phase 1 for complete schema**
 
 ---
 
@@ -324,7 +324,7 @@ const InteractiveMap = dynamic(
 
 ### During Session
 1. Follow existing patterns and architecture
-2. Refer to BUBBLE_IMPLEMENTATION_PLAN.md for implementation details
+2. Refer to bubble/docs/BUBBLE_IMPLEMENTATION_PLAN.md for implementation details
 3. Test changes thoroughly
 4. Document any new decisions
 
@@ -338,10 +338,10 @@ const InteractiveMap = dynamic(
 ## ⚡ Quick Reference Links
 
 **Internal Docs**:
-- Implementation Plan: `docs/BUBBLE_IMPLEMENTATION_PLAN.md`
+- Implementation Plan: `bubble/docs/BUBBLE_IMPLEMENTATION_PLAN.md`
 - Project Context: `docs/PROJECT_CONTEXT.md`
-- Freehand Proof: `docs/freehand_draw_investigation_report.md`
-- Next.js Rules: `AGENTS.md`
+- Freehand Proof: `bubble/docs/freehand_draw_investigation_report.md`
+- Next.js Rules: `nextjs/docs/AGENTS.md`
 
 **External Resources**:
 - Leaflet: https://leafletjs.com/reference.html
