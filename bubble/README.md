@@ -11,15 +11,24 @@ Production implementation of Water Infrastructure Interactive Map for Bubble.io.
 ## Current Status
 
 ✅ Phase 3 (Step 3-6): Freehand + Point tools - **COMPLETE**
-🚧 Phase 3 (Step 7-8): Line + Area tools - **NEXT**
+🚧 Phase 3 (Step 6.5): Tooltip enhancement - **IN PROGRESS**
+⏭️ Phase 3 (Step 7-8): Line + Area tools - **NEXT**
 
 ### Completed Features
 - ✅ Freehand drawing tool (click-drag polylines)
-- ✅ Point drawing tool (single-click markers)
+- ✅ Point drawing tool (single-click markers with colored pins)
+- ✅ Rich tooltips for Point markers (name, type, pending status, privacy)
 - ✅ Load drawings on page refresh
 - ✅ Click to select drawings
 - ✅ Privacy filtering (list-based)
 - ✅ Object pattern for JS-to-Bubble communication
+- ✅ Coordinate parsing fix for wrapped Point arrays
+
+### Next Steps
+- 🔄 **Extend tooltips to all drawing types** (polylines, polygons) - show on center markers
+- 📍 **Default showTooltip to "yes"** for all new drawings
+- 🖊️ Line tool (click-based polyline)
+- 🔶 Area tool (click-based polygon)
 
 ## Documentation
 

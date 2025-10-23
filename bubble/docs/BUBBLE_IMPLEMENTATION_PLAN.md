@@ -79,6 +79,7 @@ Fields:
 - status (option set: ElementStatus) - active | inactive | maintenance
 - category (option set: Categories) - infrastructure | monitoring | other
 - privacy (list of Account Type) - Option set list: User, Ditch Rider, Admin (determines who can view this drawing)
+- showTooltip (yes/no) - Enable hover tooltip showing name, type, pending status, and privacy (default: yes for all drawing types)
 - approvalStatus (option set: ApprovalStatus) - pending | approved | rejected
 - createdBy (User) - relationship
 - createdByRole (option set: Roles) - User | Ditch Rider | Admin
@@ -666,6 +667,55 @@ When bubble_fn_saveDrawing is called:
 
   Step 5: Reset tool
     → Set state currentTool = "select"
+```
+
+### 3.4 Tooltip Enhancement (All Drawing Types)
+
+**Goal:** Extend rich tooltips from Point markers to all drawing types (polylines and polygons)
+
+**Current State:**
+- Point markers show tooltips with name, type, pending status, privacy
+- Polylines and polygons only have center markers for selection
+- No tooltips on polyline/polygon center markers
+
+**Enhancement:**
+1. Add tooltip logic to center marker creation in `bubble-load-drawings.js`
+2. Show same rich information as Point markers:
+   - Line 1: Name (bold)
+   - Line 2: Element type
+   - Line 3: Pending review message (if applicable)
+   - Line 4: Privacy info
+3. Respect `showTooltip` field (yes/no) to enable/disable per drawing
+4. Default `showTooltip = yes` for all new drawings
+
+**Implementation:**
+```javascript
+// In bubble-load-drawings.js, after creating center marker
+if (drawing.showTooltip) {
+  var tooltipLines = [];
+  tooltipLines.push('<div style="font-weight:bold;margin-bottom:4px;">' + drawing.name + '</div>');
+  tooltipLines.push('<div style="color:#666;margin-bottom:4px;">' + (drawing.elementType || 'Custom') + '</div>');
+
+  if (drawing.approvalStatus === 'pending') {
+    tooltipLines.push('<div style="color:#EF4444;font-size:12px;margin-bottom:4px;">⚠️ Pending Admin Review</div>');
+  }
+
+  var privacyText = 'Privacy: ';
+  if (drawing.privacy && drawing.privacy.length === 3) {
+    privacyText += 'All users';
+  } else if (drawing.privacy) {
+    privacyText += drawing.privacy.join(', ');
+  }
+  tooltipLines.push('<div style="color:#999;font-size:11px;">' + privacyText + '</div>');
+
+  centerMarker.bindTooltip(tooltipLines.join(''), {
+    permanent: false,
+    direction: 'top',
+    offset: [0, -8],
+    className: 'custom-center-tooltip',
+    opacity: 1
+  });
+}
 ```
 
 ---

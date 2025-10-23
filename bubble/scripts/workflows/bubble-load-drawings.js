@@ -50,8 +50,8 @@ var renderAllDrawings = function() {
       // Convert GeoJSON [lng, lat] to Leaflet [lat, lng]
       var leafletCoords;
       if (drawing.type === 'point') {
-        // Point: single coordinate pair
-        leafletCoords = [coords[1], coords[0]];
+        // Point: wrapped array of one coordinate pair [[-47.xxx, -23.xxx]]
+        leafletCoords = [coords[0][1], coords[0][0]];  // Unwrap first pair, swap to [lat, lng]
       } else {
         // Line/Polygon: array of coordinate pairs
         leafletCoords = coords.map(function(c) {
@@ -65,16 +65,75 @@ var renderAllDrawings = function() {
       var layer;
 
       if (drawing.type === 'point') {
-        // Point marker
+        // Point marker with colored pin
+        var isPending = drawing.approvalStatus === 'pending';
+
+        // Build marker icon with SVG pin
+        var markerHtml = '<svg width="25" height="41" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg">' +
+          '<path d="M12.5 0C5.6 0 0 5.6 0 12.5C0 21.9 12.5 41 12.5 41S25 21.9 25 12.5C25 5.6 19.4 0 12.5 0Z" ' +
+          'fill="' + drawing.color + '" stroke="white" stroke-width="2"/>' +
+          '<circle cx="12.5" cy="12.5" r="4" fill="white"/>' +
+          '</svg>';
+
+        // Add @ symbol if pending review
+        if (isPending) {
+          markerHtml += '<div style="position:absolute;top:-5px;right:-5px;width:16px;height:16px;' +
+            'background:#EF4444;border:2px solid white;border-radius:50%;' +
+            'display:flex;align-items:center;justify-content:center;' +
+            'font-size:10px;font-weight:bold;color:white;">@</div>';
+        }
+
         layer = L.marker(leafletCoords, {
           icon: L.divIcon({
-            html: '<div class="custom-marker" style="width:24px;height:24px;background:' + drawing.color + ';border:3px solid white;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,0.3);"></div>',
-            iconSize: [24, 24],
+            html: markerHtml,
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
             className: 'drawing-marker-point'
           })
         }).addTo(map);
 
-        console.log('📍 Created point marker');
+        // Add tooltip if enabled
+        if (drawing.showTooltip) {
+          var tooltipLines = [];
+
+          // Line 1: Name (bold)
+          tooltipLines.push('<div style="font-weight:bold;margin-bottom:4px;">' + drawing.name + '</div>');
+
+          // Line 2: Element type
+          var elementType = drawing.elementType || 'Custom';
+          tooltipLines.push('<div style="color:#666;margin-bottom:4px;">' + elementType + '</div>');
+
+          // Line 3: Pending review (if applicable)
+          if (isPending) {
+            tooltipLines.push('<div style="color:#EF4444;font-size:12px;margin-bottom:4px;">⚠️ Pending Admin Review</div>');
+          }
+
+          // Line 4: Privacy info
+          var privacyText = 'Privacy: ';
+          if (drawing.privacy && drawing.privacy.length > 0) {
+            if (drawing.privacy.length === 3) {
+              privacyText += 'All users';
+            } else {
+              privacyText += drawing.privacy.join(', ');
+            }
+          } else {
+            privacyText += 'All users';
+          }
+          tooltipLines.push('<div style="color:#999;font-size:11px;">' + privacyText + '</div>');
+
+          var tooltipHtml = tooltipLines.join('');
+
+          layer.bindTooltip(tooltipHtml, {
+            permanent: false,
+            direction: 'top',
+            offset: [0, -41],
+            className: 'custom-point-tooltip',
+            opacity: 1
+          });
+        }
+
+        console.log('📍 Created point marker with colored pin' + (isPending ? ' (@)' : ''));
 
       } else if (drawing.type === 'polygon') {
         // Polygon (area)

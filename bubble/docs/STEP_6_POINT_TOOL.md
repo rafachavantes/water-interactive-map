@@ -126,6 +126,7 @@ Data → Create a new thing
     elementType = "custom" (or use state)
     properties = <output1_properties parameter>
     approvalStatus = if Current User's role = "Admin" then "approved" else "pending"
+    showTooltip = yes
     createdBy = Current User
     createdByRole = Current User's role
     createdAt = Current date/time
@@ -154,25 +155,78 @@ var lng = markerPos[1];
 var drawingId = '<Result of Step 1's _id>';
 var color = '<Result of Step 1's color>';
 var name = '<Result of Step 1's name>';
+var elementType = '<Result of Step 1's elementType>' || 'Custom';
+var approvalStatus = '<Result of Step 1's approvalStatus>';
+var privacy = '<Result of Step 1's privacy>';  // List of Account Type
+var showTooltip = '<Result of Step 1's showTooltip>';
 
 var map = window.__leafy_found_map;
+var isPending = approvalStatus === 'pending';
 
-// Create marker with custom colored circle
+// Build marker icon with colored SVG pin
+var markerHtml = '<svg width="25" height="41" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg">' +
+  '<path d="M12.5 0C5.6 0 0 5.6 0 12.5C0 21.9 12.5 41 12.5 41S25 21.9 25 12.5C25 5.6 19.4 0 12.5 0Z" ' +
+  'fill="' + color + '" stroke="white" stroke-width="2"/>' +
+  '<circle cx="12.5" cy="12.5" r="4" fill="white"/>' +
+  '</svg>';
+
+// Add @ symbol if pending review
+if (isPending) {
+  markerHtml += '<div style="position:absolute;top:-5px;right:-5px;width:16px;height:16px;' +
+    'background:#EF4444;border:2px solid white;border-radius:50%;' +
+    'display:flex;align-items:center;justify-content:center;' +
+    'font-size:10px;font-weight:bold;color:white;">@</div>';
+}
+
+// Create marker
 var marker = L.marker([lat, lng], {
   icon: L.divIcon({
-    html: '<div class="custom-marker" style="width:24px;height:24px;background:' + color + ';border:3px solid white;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,0.3);cursor:pointer;"></div>',
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
+    html: markerHtml,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
     className: 'drawing-marker-point'
   })
 }).addTo(map);
 
-// Add tooltip
-marker.bindTooltip(name, {
-  permanent: false,
-  direction: 'top',
-  offset: [0, -12]
-});
+// Add rich tooltip if enabled
+if (showTooltip) {
+  var tooltipLines = [];
+
+  // Line 1: Name (bold)
+  tooltipLines.push('<div style="font-weight:bold;margin-bottom:4px;">' + name + '</div>');
+
+  // Line 2: Element type
+  tooltipLines.push('<div style="color:#666;margin-bottom:4px;">' + elementType + '</div>');
+
+  // Line 3: Pending review (if applicable)
+  if (isPending) {
+    tooltipLines.push('<div style="color:#EF4444;font-size:12px;margin-bottom:4px;">⚠️ Pending Admin Review</div>');
+  }
+
+  // Line 4: Privacy info
+  var privacyText = 'Privacy: ';
+  if (privacy && privacy.length > 0) {
+    if (privacy.length === 3) {
+      privacyText += 'All users';
+    } else {
+      privacyText += privacy.join(', ');
+    }
+  } else {
+    privacyText += 'All users';
+  }
+  tooltipLines.push('<div style="color:#999;font-size:11px;">' + privacyText + '</div>');
+
+  var tooltipHtml = tooltipLines.join('');
+
+  marker.bindTooltip(tooltipHtml, {
+    permanent: false,
+    direction: 'top',
+    offset: [0, -41],
+    className: 'custom-point-tooltip',
+    opacity: 1
+  });
+}
 
 // Make clickable for selection
 marker.on('click', function(e) {
@@ -196,21 +250,13 @@ window.__drawing_state.drawings.push({
 console.log('✅ Point marker rendered:', drawingId);
 ```
 
-**Alternative: Use standard Leaflet blue pin icon**
-```javascript
-// Replace the marker creation above with:
-var marker = L.marker([lat, lng], {
-  icon: L.icon({
-    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
-  })
-}).addTo(map);
-```
+**Tooltip Features:**
+- **Name**: Bold text at top
+- **Element Type**: Shows drawing's elementType field (Hazard, Pump, Custom, etc.)
+- **Pending Review**: Red warning text with ⚠️ symbol if approvalStatus = "pending"
+- **Privacy**: Shows which roles can access (e.g., "Privacy: All users" or "Privacy: Admins, Ditch Riders")
+- **@ Symbol**: Red circle badge on marker when pending approval
+- Only displays if `showTooltip = yes` in database
 
 #### Action 3: Select New Drawing
 ```
@@ -289,6 +335,25 @@ Element → Set state
 2. Check for condition: `if (markerPos && drawing.type !== 'point')`
 3. Point markers are already clickable, no center marker needed
 
+### Issue: Error "Invalid LatLng object: (undefined, ...)"
+**Symptoms:**
+- Console shows: `Error: Invalid LatLng object: (undefined, -47.xxx, -23.xxx)`
+- Point markers don't render on page load
+- Error occurs at marker creation line
+
+**Root Cause:**
+Coordinates are wrapped in array format `[[-47.xxx, -23.xxx]]` but code treats it as flat `[-47.xxx, -23.xxx]`
+
+**Solution:**
+Update bubble-load-drawings.js line 54:
+```javascript
+// WRONG:
+leafletCoords = [coords[1], coords[0]];  // coords[1] is undefined!
+
+// CORRECT:
+leafletCoords = [coords[0][1], coords[0][0]];  // Unwrap first pair, swap to [lat, lng]
+```
+
 ## 📊 Database Schema Reminder
 
 **Point Drawing Example (matches freehand pattern):**
@@ -322,6 +387,7 @@ Full GeoJSON Feature object
   elementType: "custom",
   properties: "{\"type\":\"Feature\",\"geometry\":{...}}",  // Full GeoJSON
   approvalStatus: "pending",
+  showTooltip: true,  // Enable hover tooltip with name, type, pending status, privacy
   createdBy: [User],
   createdByRole: "Ditch Rider",
   privacy: [List of Account Types: "User", "Ditch Rider", "Admin"]  // Not JSON!
@@ -334,15 +400,30 @@ Full GeoJSON Feature object
 - ✅ Properties: Full GeoJSON Feature object
 - ✅ Privacy: List of Account Type option set, not JSON text
 - ✅ Uses object pattern for JS-to-Bubble communication
+- ✅ ShowTooltip: Controls hover tooltip display with name, type, pending status, and privacy info
+- ✅ Marker Design: Colored SVG pin with @ symbol when pending approval
 
 ## 🎯 Success Criteria
 
 ✅ Point tool fully functional
+✅ Colored marker pins render correctly (not circles)
+✅ Tooltips display on hover with rich information
 ✅ Markers save to database
-✅ Markers persist across page refreshes
+✅ Markers persist across page refreshes (coordinate parsing fixed)
 ✅ Selection works on click
 ✅ Privacy filtering applies
 ✅ Approval workflow functions
+✅ @ symbol badge shows for pending drawings
+
+## 💡 Future Enhancement
+
+**Next Step: Extend tooltips to all drawing types**
+
+Currently tooltips only show on Point markers. The next enhancement will:
+- Add tooltips to polyline/polygon center markers
+- Show same rich information (name, type, pending, privacy)
+- Use `showTooltip` field to control visibility per drawing
+- Default `showTooltip = yes` for all new drawings
 
 ## 🚀 Next Steps
 
