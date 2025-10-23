@@ -1,22 +1,24 @@
 <!-- ========================================
-     WATER INFRASTRUCTURE MAP - FREEHAND DRAWING v3
+     WATER INFRASTRUCTURE MAP - DRAWING TOOLS v4
      Bubble.io Page Header Script
+     Freehand + Point + Line + Area tools
      WITH AUTO-RENDERING after drawing completes
      ======================================== -->
 
 <script>
-/* ===== MAP CAPTURE & FREEHAND DRAWING SYSTEM v3 =====
+/* ===== MAP CAPTURE & DRAWING TOOLS SYSTEM v4 =====
+   Freehand + Point + Line + Area tools
    Now with automatic rendering option
 */
 
 (function() {
   'use strict';
 
-  if (window.__leafy_freehand_installed) {
-    console.log('⚠️ Freehand header already installed, skipping...');
+  if (window.__leafy_drawing_tools_installed) {
+    console.log('⚠️ Drawing tools already installed, skipping...');
     return;
   }
-  window.__leafy_freehand_installed = true;
+  window.__leafy_drawing_tools_installed = true;
 
   const MAX_CAPTURE_ATTEMPTS = 80;
   const RETRY_INTERVAL_MS = 250;
@@ -335,6 +337,108 @@
     }
   };
 
+  // ===== POINT TOOL (Single Click Marker) =====
+
+  window.__leafy_point = {
+    autoRender: false,
+    _handler: null,
+
+    start: function(options) {
+      options = options || {};
+      const map = window.__leafy_found_map;
+
+      if (!map || !isMapLike(map)) {
+        console.error('❌ Map not found. Run window.__leafy_try_capture_now()');
+        return;
+      }
+
+      const self = this;
+      const container = map.getContainer();
+
+      // Set auto-render option
+      if (options.autoRender !== undefined) {
+        self.autoRender = options.autoRender;
+      }
+
+      container.style.cursor = 'crosshair';
+      console.log('📍 Point mode enabled. Click to place marker.');
+      if (self.autoRender) console.log('🖼️ Auto-render: ON (marker will stay on map)');
+
+      const onClick = function(e) {
+        const latlng = e.latlng;
+
+        // Create GeoJSON Point
+        const geojson = {
+          type: "Feature",
+          geometry: {
+            type: "Point",
+            coordinates: [latlng.lng, latlng.lat]
+          },
+          properties: {
+            tool: 'point',
+            color: '#3B82F6'
+          }
+        };
+
+        window.__leafy_last_point = geojson;
+        console.log('✅ Point placed -> window.__leafy_last_point', geojson);
+
+        // AUTO-RENDER: Draw marker if enabled
+        if (self.autoRender) {
+          const marker = L.marker([latlng.lat, latlng.lng], {
+            icon: L.icon({
+              iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+              iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+              shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+              iconSize: [25, 41],
+              iconAnchor: [12, 41],
+              popupAnchor: [1, -34],
+              shadowSize: [41, 41]
+            })
+          }).addTo(map);
+
+          console.log('🖼️ Auto-rendered marker on map');
+
+          // Store reference
+          if (!window.__leafy_rendered_layers) window.__leafy_rendered_layers = [];
+          window.__leafy_rendered_layers.push(marker);
+        }
+
+        // Notify Bubble with 3 outputs (matching freehand pattern)
+        // output1 = properties (full GeoJSON Feature)
+        // output2 = coordinates [[lng, lat]] - wrapped in array for consistency
+        // output3 = marker_position ([lat, lng] - reversed!)
+        if (typeof window.bubble_fn_pointComplete === 'function') {
+          window.bubble_fn_pointComplete({
+            output1: JSON.stringify(geojson),                              // Full GeoJSON Feature
+            output2: JSON.stringify([geojson.geometry.coordinates]),       // [[lng, lat]] - array of pairs
+            output3: JSON.stringify([latlng.lat, latlng.lng])             // [lat, lng] - marker position
+          });
+        }
+
+        // Cleanup
+        container.style.cursor = '';
+        map.off('click', onClick);
+        self._handler = null;
+      };
+
+      map.once('click', onClick);
+      self._handler = onClick;
+    },
+
+    stop: function() {
+      const map = window.__leafy_found_map;
+      if (!map || !isMapLike(map)) return;
+      const container = map.getContainer();
+      container.style.cursor = '';
+      if (this._handler) {
+        map.off('click', this._handler);
+        this._handler = null;
+      }
+      console.log('🛑 Point tool stopped.');
+    }
+  };
+
   // ===== HELPER FUNCTIONS =====
 
   window.createGeoJSON = function(type, coordinates, properties) {
@@ -407,12 +511,17 @@
     console.log('🔄 Manual capture triggered.');
   };
 
-  console.log('🚀 Leafy Freehand v3 initialized (with auto-render option)');
-  console.log('📚 Commands:');
-  console.log('  - window.__leafy_freehand.start()                    → Draw (clears after)');
-  console.log('  - window.__leafy_freehand.start({autoRender: true}) → Draw (keeps on map)');
-  console.log('  - window.__leafy_freehand.clearAllRendered()        → Clear all drawings');
-  console.log('  - window.renderDrawingOnMap(geojson)                → Render any GeoJSON');
+  console.log('🚀 Leafy Drawing Tools v4 initialized');
+  console.log('📚 Available Tools:');
+  console.log('  🎨 Freehand:');
+  console.log('    - window.__leafy_freehand.start()                    → Draw (clears after)');
+  console.log('    - window.__leafy_freehand.start({autoRender: true}) → Draw (keeps on map)');
+  console.log('  📍 Point:');
+  console.log('    - window.__leafy_point.start()                       → Place marker');
+  console.log('    - window.__leafy_point.start({autoRender: true})    → Place marker (keeps on map)');
+  console.log('  🧹 Utilities:');
+  console.log('    - window.__leafy_freehand.clearAllRendered()        → Clear all drawings');
+  console.log('    - window.renderDrawingOnMap(geojson)                → Render any GeoJSON');
 
 })();
 </script>

@@ -1,7 +1,13 @@
 # CLAUDE.md - Water Infrastructure Interactive Map
 
 *Quick reference guide for AI assistants and developers working with this repository*
-
+---
+My name is Rafael
+---
+When asked to update documention:
+- review and update claude.md with relevant informations only.
+- review and update bubble/README.md file. Delete old and irrelevant information, update important information only. These files must have only crucial information for understand the project and progress , current state and next steps. A document that a new member of the team can read, understand and continue working on this by himself.
+when commiting do not add "🤖 Generated with Claude Code" Only add Co-Authored-By: Claude Code
 ---
 
 ## 🎯 Project Overview
@@ -32,7 +38,7 @@
 |----------|---------|-------------|
 | **CLAUDE.md** (this file) | AI assistant quick reference | Every session start |
 | **bubble/docs/BUBBLE_IMPLEMENTATION_PLAN.md** | Detailed 8-week Bubble implementation | Building Bubble features |
-| **docs/PROJECT_CONTEXT.md** | Session history & decisions | Catch up on latest work |
+| **bubble/README.md** | Current Status |
 | **bubble/docs/freehand_draw_investigation_report.md** | Proven freehand drawing solution | Implementing map drawing |
 | **nextjs/docs/AGENTS.md** | Next.js client/server architecture | Working with Next.js code |
 | **README.md** | Project setup & installation | Initial setup |
@@ -318,7 +324,7 @@ const InteractiveMap = dynamic(
 ## 🎯 AI Session Workflow
 
 ### Start of Session
-1. Read `docs/PROJECT_CONTEXT.md` for latest status
+1. Read `/bubble/README.md` for latest status
 2. Check current implementation phase
 3. Review any open questions or blockers
 
@@ -329,7 +335,7 @@ const InteractiveMap = dynamic(
 4. Document any new decisions
 
 ### End of Session
-1. Update `docs/PROJECT_CONTEXT.md` with session summary
+1. Update `/bubble/README.md` with session summary
 2. Note any new decisions or open questions
 3. Update implementation status in roadmap
 
@@ -339,7 +345,7 @@ const InteractiveMap = dynamic(
 
 **Internal Docs**:
 - Implementation Plan: `bubble/docs/BUBBLE_IMPLEMENTATION_PLAN.md`
-- Project Context: `docs/PROJECT_CONTEXT.md`
+- Project Context: `/bubble/README.md`
 - Freehand Proof: `bubble/docs/freehand_draw_investigation_report.md`
 - Next.js Rules: `nextjs/docs/AGENTS.md`
 
@@ -351,25 +357,8 @@ const InteractiveMap = dynamic(
 
 ---
 
-## ✅ Never Do / Always Do
-
-### Next.js
-**Never**:
-- Import database in client components
-- Access env vars directly in client
-- Use Leaflet without dynamic import
-- Save blob: URLs to database
-
-**Always**:
-- Use API routes for database operations
-- Use drawingService wrapper
-- Dynamic imports for browser libs
-- Test save/reload cycle
-
 ### Bubble.io
 **Never**:
-- Implement freehand without coordinate simplification
-- Assume real-time updates work (use polling)
 - Create entities without tracking origin in metadata
 - Skip privacy filtering in workflows
 
@@ -378,7 +367,6 @@ const InteractiveMap = dynamic(
 - Test drawings save and reload
 - Validate privacy filtering per role
 - Check mobile responsiveness
-- Document decisions in PROJECT_CONTEXT.md
 
 ---
 
@@ -397,8 +385,3 @@ const InteractiveMap = dynamic(
 - Intuitive drawing workflow
 
 ---
-
-**Document Version**: 3.0
-**Last Updated**: 2025-10-09
-**Status**: Streamlined for AI efficiency
-**Next Focus**: Bubble.io Phase 1 - Foundation & Database Setup

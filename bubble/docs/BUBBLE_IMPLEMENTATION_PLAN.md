@@ -78,7 +78,7 @@ Fields:
 - description (text)
 - status (option set: ElementStatus) - active | inactive | maintenance
 - category (option set: Categories) - infrastructure | monitoring | other
-- privacy (text) - JSON: {roles: {users: bool, ditchRiders: bool, admins: bool}, specificUsers: [ids], linkedEntity: bool}
+- privacy (list of Account Type) - Option set list: User, Ditch Rider, Admin (determines who can view this drawing)
 - approvalStatus (option set: ApprovalStatus) - pending | approved | rejected
 - createdBy (User) - relationship
 - createdByRole (option set: Roles) - User | Ditch Rider | Admin
@@ -89,7 +89,7 @@ Fields:
 - contactPhone (text)
 - contactEmail (text)
 - contactRole (text)
-- contactPrivacy (text) - JSON privacy object
+- contactPrivacy (list of Account Type) - Who can see contact info (User, Ditch Rider, Admin)
 - files (text) - JSON array of file objects
 - notes (text)
 - properties (text) - JSON: {strokeWeight: number, fillOpacity: number, tool: string}
@@ -173,6 +173,10 @@ Custom fields:
 
 - Roles: User, Ditch Rider, Admin
   (Used in: Users.role, Drawings.createdByRole, Issues.createdByRole)
+
+- Account Type: User, Ditch Rider, Admin
+  (Used in: Drawings.privacy list, Drawings.contactPrivacy list - determines viewing permissions)
+  Note: Same values as Roles, but separate option set for clarity
 
 - ApprovalStatus: pending, approved, rejected
   (Used in: Drawings.approvalStatus)
@@ -793,7 +797,7 @@ Floating Group (right sidebar, conditional visibility)
 
 **Workflows:**
 - When Link to entity selected → auto-populate contact info
-- When privacy checkbox clicked → update privacy JSON
+- When privacy checkbox clicked → add/remove Account Type from privacy list
 - When save → update Drawing record with all fields
 - When delete → show confirmation → delete Drawing + remove from map
 
@@ -803,37 +807,40 @@ Floating Group (right sidebar, conditional visibility)
 
 ### 5.1 Privacy Filtering
 
-**Backend Workflow: "Can User Access Drawing"**
+**Simplified with List-Based Privacy**
+
+**Search Filter (No custom workflow needed!):**
+```
+Search for Drawings:
+  Add constraint:
+    - privacy contains Current User's role
+```
+
+That's it! Bubble automatically checks if the user's role is in the privacy list.
+
+**Alternative: Backend Workflow for Complex Cases**
 ```
 Input: Drawing, User
 
-Logic:
-  Set result = "no" (default)
-
-  If Drawing's privacy's roles's admins = "yes" AND User's role = "Admin":
-    Set result = "yes"
-
-  Else If Drawing's privacy's roles's ditchRiders = "yes" AND User's role = "Ditch Rider":
-    Set result = "yes"
-
-  Else If Drawing's privacy's roles's users = "yes" AND User's role = "User":
-    Set result = "yes"
-
-  Else If Drawing's privacy's specificUsers contains User's unique id:
-    Set result = "yes"
-
-  Else If Drawing's privacy's linkedEntity = "yes" AND Drawing's linkedEntity's ... (check relationship):
-    Set result = "yes"
-
-  Return result
+Logic (simplified):
+  If Drawing's privacy contains User's role:
+    Return "yes"
+  Else:
+    Return "no"
 ```
 
-**Apply to searches:**
-```
-Search for Drawings:
-  Advanced filters:
-    - Custom filter using "Can User Access Drawing" = "yes"
-```
+**Example privacy configurations:**
+- Public drawing: privacy list = [User, Ditch Rider, Admin]
+- Internal only: privacy list = [Ditch Rider, Admin]
+- Admin only: privacy list = [Admin]
+- Custom: Add/remove specific Account Types as needed
+
+**Benefits of List-Based Privacy:**
+- ✅ Simple Bubble constraint: `privacy contains Current User's role`
+- ✅ No JSON parsing needed
+- ✅ Type-safe (no typos)
+- ✅ Easy to modify in UI (add/remove from list)
+- ✅ Better performance (indexed by Bubble)
 
 ### 5.2 Approval Workflow
 

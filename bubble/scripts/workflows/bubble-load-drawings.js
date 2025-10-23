@@ -6,8 +6,8 @@
 // IMPORTANT: Replace <BUBBLE_DATA_INJECTION> with Bubble dynamic data
 // Format: [{"id":"...","coords":"...","color":"...","type":"...","markerPos":"...","name":"...","elementType":"..."}]
 //
-// Version: 1.0
-// Date: 2025-10-10
+// Version: 1.1
+// Date: 2025-10-23
 
 console.log('🔄 Step 4: Loading drawings from database...');
 
