@@ -601,8 +601,105 @@ window.__leafy_line = {
 **Area/Polygon Tool:**
 ```javascript
 window.__leafy_area = {
-  // Similar to line but creates polygon and closes on finish
-  // ... implementation ...
+  points: [],
+  previewLayer: null,
+  markers: [],
+  _handlers: {},
+
+  start: function() {
+    var map = window.__leafy_found_map;
+    var self = this;
+
+    map.getContainer().style.cursor = 'crosshair';
+
+    var onClick = function(e) {
+      self.points.push([e.latlng.lat, e.latlng.lng]);
+
+      // Add vertex marker
+      var marker = L.circleMarker(e.latlng, {
+        radius: 5,
+        color: '#3B82F6',
+        fillColor: '#fff',
+        fillOpacity: 1,
+        weight: 2
+      }).addTo(map);
+      self.markers.push(marker);
+
+      // Update preview polygon
+      if (self.points.length >= 3) {
+        if (self.previewLayer) map.removeLayer(self.previewLayer);
+        self.previewLayer = L.polygon(self.points, {
+          color: '#3B82F6',
+          weight: 3,
+          opacity: 0.8,
+          fillOpacity: 0.2,
+          dashArray: '5, 5'
+        }).addTo(map);
+      } else if (self.points.length === 2) {
+        // Show line preview before 3rd point
+        if (self.previewLayer) map.removeLayer(self.previewLayer);
+        self.previewLayer = L.polyline(self.points, {
+          color: '#3B82F6',
+          weight: 3,
+          opacity: 0.8,
+          dashArray: '5, 5'
+        }).addTo(map);
+      }
+    };
+
+    var onDblClick = function(e) {
+      L.DomEvent.stop(e);
+      self.finish();
+    };
+
+    map.on('click', onClick);
+    map.on('dblclick', onDblClick);
+
+    // Store for cleanup
+    this._onClick = onClick;
+    this._onDblClick = onDblClick;
+  },
+
+  finish: function() {
+    var map = window.__leafy_found_map;
+
+    if (this.points.length >= 3) {
+      var geojson = {
+        type: "Feature",
+        geometry: {
+          type: "Polygon",
+          coordinates: [this.points.map(p => [p[1], p[0]])]  // Array of rings
+        },
+        properties: {
+          tool: 'area',
+          fillOpacity: 0.3
+        }
+      };
+
+      if (window.bubble_fn_areaComplete) {
+        window.bubble_fn_areaComplete(JSON.stringify(geojson));
+      }
+    }
+
+    this.cleanup();
+  },
+
+  cleanup: function() {
+    var map = window.__leafy_found_map;
+
+    // Remove event listeners
+    if (this._onClick) map.off('click', this._onClick);
+    if (this._onDblClick) map.off('dblclick', this._onDblClick);
+
+    // Clear visual elements
+    this.markers.forEach(m => map.removeLayer(m));
+    if (this.previewLayer) map.removeLayer(this.previewLayer);
+
+    this.points = [];
+    this.markers = [];
+    this.previewLayer = null;
+    map.getContainer().style.cursor = '';
+  }
 };
 ```
 

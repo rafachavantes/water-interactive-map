@@ -172,13 +172,72 @@ var renderAllDrawings = function() {
       // Create center marker for easier selection (except for point type)
       var centerMarker = null;
       if (markerPos && drawing.type !== 'point') {
+        var isPending = drawing.approvalStatus === 'pending';
+
+        // Build center marker icon with SVG pin (same as Point markers)
+        var centerMarkerHtml = '<svg width="25" height="41" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg">' +
+          '<path d="M12.5 0C5.6 0 0 5.6 0 12.5C0 21.9 12.5 41 12.5 41S25 21.9 25 12.5C25 5.6 19.4 0 12.5 0Z" ' +
+          'fill="' + drawing.color + '" stroke="white" stroke-width="2"/>' +
+          '<circle cx="12.5" cy="12.5" r="4" fill="white"/>' +
+          '</svg>';
+
+        // Add @ symbol if pending review
+        if (isPending) {
+          centerMarkerHtml += '<div style="position:absolute;top:-5px;right:-5px;width:16px;height:16px;' +
+            'background:#EF4444;border:2px solid white;border-radius:50%;' +
+            'display:flex;align-items:center;justify-content:center;' +
+            'font-size:10px;font-weight:bold;color:white;">@</div>';
+        }
+
         centerMarker = L.marker([markerPos[0], markerPos[1]], {
           icon: L.divIcon({
-            html: '<div class="center-marker" style="width:16px;height:16px;background:' + drawing.color + ';border:2px solid white;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,0.4);cursor:pointer;"></div>',
-            iconSize: [16, 16],
+            html: centerMarkerHtml,
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
             className: 'drawing-marker-center'
           })
         }).addTo(map);
+
+        // Add tooltip if enabled
+        if (drawing.showTooltip) {
+          var tooltipLines = [];
+
+          // Line 1: Name (bold)
+          tooltipLines.push('<div style="font-weight:bold;margin-bottom:4px;">' + drawing.name + '</div>');
+
+          // Line 2: Element type
+          var elementType = drawing.elementType || 'Custom';
+          tooltipLines.push('<div style="color:#666;margin-bottom:4px;">' + elementType + '</div>');
+
+          // Line 3: Pending review (if applicable)
+          if (isPending) {
+            tooltipLines.push('<div style="color:#EF4444;font-size:12px;margin-bottom:4px;">⚠️ Pending Admin Review</div>');
+          }
+
+          // Line 4: Privacy info
+          var privacyText = 'Privacy: ';
+          if (drawing.privacy && drawing.privacy.length > 0) {
+            if (drawing.privacy.length === 3) {
+              privacyText += 'All users';
+            } else {
+              privacyText += drawing.privacy.join(', ');
+            }
+          } else {
+            privacyText += 'All users';
+          }
+          tooltipLines.push('<div style="color:#999;font-size:11px;">' + privacyText + '</div>');
+
+          var tooltipHtml = tooltipLines.join('');
+
+          centerMarker.bindTooltip(tooltipHtml, {
+            permanent: false,
+            direction: 'top',
+            offset: [0, -41],
+            className: 'custom-center-tooltip',
+            opacity: 1
+          });
+        }
 
         // Click handler for center marker
         centerMarker.on('click', function(e) {
@@ -190,7 +249,7 @@ var renderAllDrawings = function() {
           }
         });
 
-        console.log('📍 Added center marker at', markerPos);
+        console.log('📍 Added center marker at', markerPos, drawing.showTooltip ? '(with tooltip)' : '');
       }
 
       // Store references for future use (selection, deletion, etc.)

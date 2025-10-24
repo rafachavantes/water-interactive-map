@@ -439,6 +439,457 @@
     }
   };
 
+  // ===== LINE TOOL (Click-based Polyline) =====
+
+  window.__leafy_line = {
+    points: [],
+    previewLayer: null,
+    markers: [],
+    autoRender: false,
+    _handlers: {},
+
+    start: function(options) {
+      options = options || {};
+      const map = window.__leafy_found_map;
+
+      if (!map || !isMapLike(map)) {
+        console.error('❌ Map not found. Run window.__leafy_try_capture_now()');
+        return;
+      }
+
+      const self = this;
+      const container = map.getContainer();
+
+      // Set auto-render option
+      if (options.autoRender !== undefined) {
+        self.autoRender = options.autoRender;
+      }
+
+      container.style.cursor = 'crosshair';
+      console.log('📏 Line mode enabled. Click to add vertices, double-click to finish.');
+      if (self.autoRender) console.log('🖼️ Auto-render: ON (line will stay on map)');
+
+      const onClick = function(e) {
+        self.points.push([e.latlng.lat, e.latlng.lng]);
+
+        // Add vertex marker
+        const marker = L.circleMarker(e.latlng, {
+          radius: 5,
+          color: '#3B82F6',
+          fillColor: '#fff',
+          fillOpacity: 1,
+          weight: 2
+        }).addTo(map);
+        self.markers.push(marker);
+
+        console.log(`📍 Vertex ${self.points.length} added`);
+
+        // Update preview line
+        if (self.points.length >= 2) {
+          if (self.previewLayer) map.removeLayer(self.previewLayer);
+          self.previewLayer = L.polyline(self.points, {
+            color: '#3B82F6',
+            weight: 3,
+            opacity: 0.8,
+            dashArray: '5, 5'
+          }).addTo(map);
+        }
+      };
+
+      const onDblClick = function(e) {
+        L.DomEvent.stop(e);
+        console.log('✅ Line complete (double-click detected)');
+        self.finish();
+      };
+
+      map.on('click', onClick);
+      map.on('dblclick', onDblClick);
+
+      // Store for cleanup
+      self._handlers.onClick = onClick;
+      self._handlers.onDblClick = onDblClick;
+    },
+
+    finish: function() {
+      const map = window.__leafy_found_map;
+      if (!map || !isMapLike(map)) return;
+
+      if (this.points.length >= 2) {
+        const geojson = {
+          type: "Feature",
+          geometry: {
+            type: "LineString",
+            coordinates: this.points.map(p => [p[1], p[0]]) // [lng, lat]
+          },
+          properties: {
+            tool: 'line',
+            color: '#3B82F6',
+            strokeWeight: 3
+          }
+        };
+
+        window.__leafy_last_line = geojson;
+        console.log('✅ Line created -> window.__leafy_last_line', geojson);
+
+        // Clear preview
+        if (this.previewLayer) {
+          map.removeLayer(this.previewLayer);
+          this.previewLayer = null;
+        }
+
+        // AUTO-RENDER: Draw permanent layer if enabled
+        if (this.autoRender) {
+          const leafletCoords = geojson.geometry.coordinates.map(c => [c[1], c[0]]);
+          const permanentLayer = L.polyline(leafletCoords, {
+            color: geojson.properties.color,
+            weight: geojson.properties.strokeWeight,
+            opacity: 1
+          }).addTo(map);
+
+          console.log('🖼️ Auto-rendered on map (permanent)');
+
+          // Store reference
+          if (!window.__leafy_rendered_layers) window.__leafy_rendered_layers = [];
+          window.__leafy_rendered_layers.push(permanentLayer);
+        }
+
+        // Notify Bubble
+        if (typeof window.bubble_fn_lineComplete === 'function') {
+          window.bubble_fn_lineComplete(JSON.stringify(geojson));
+        }
+      } else {
+        console.log('⚠️ Line needs at least 2 points, discarded.');
+      }
+
+      this.cleanup();
+    },
+
+    stop: function() {
+      console.log('🛑 Line tool stopped.');
+      this.cleanup();
+    },
+
+    cleanup: function() {
+      const map = window.__leafy_found_map;
+      if (!map || !isMapLike(map)) return;
+      const container = map.getContainer();
+
+      // Remove event listeners
+      if (this._handlers.onClick) map.off('click', this._handlers.onClick);
+      if (this._handlers.onDblClick) map.off('dblclick', this._handlers.onDblClick);
+
+      // Clear visual elements
+      this.markers.forEach(m => map.removeLayer(m));
+      if (this.previewLayer) map.removeLayer(this.previewLayer);
+
+      // Reset state
+      this.points = [];
+      this.markers = [];
+      this.previewLayer = null;
+      this._handlers = {};
+      container.style.cursor = '';
+    }
+  };
+
+  // ===== AREA TOOL (Click-based Polygon) =====
+
+  window.__leafy_area = {
+    points: [],
+    previewLayer: null,
+    markers: [],
+    autoRender: false,
+    _handlers: {},
+
+    start: function(options) {
+      options = options || {};
+      const map = window.__leafy_found_map;
+
+      if (!map || !isMapLike(map)) {
+        console.error('❌ Map not found. Run window.__leafy_try_capture_now()');
+        return;
+      }
+
+      const self = this;
+      const container = map.getContainer();
+
+      // Set auto-render option
+      if (options.autoRender !== undefined) {
+        self.autoRender = options.autoRender;
+      }
+
+      container.style.cursor = 'crosshair';
+      console.log('🔶 Area mode enabled. Click to add vertices, double-click to close polygon.');
+      if (self.autoRender) console.log('🖼️ Auto-render: ON (polygon will stay on map)');
+
+      const onClick = function(e) {
+        self.points.push([e.latlng.lat, e.latlng.lng]);
+
+        // Add vertex marker
+        const marker = L.circleMarker(e.latlng, {
+          radius: 5,
+          color: '#3B82F6',
+          fillColor: '#fff',
+          fillOpacity: 1,
+          weight: 2
+        }).addTo(map);
+        self.markers.push(marker);
+
+        console.log(`📍 Vertex ${self.points.length} added`);
+
+        // Update preview polygon
+        if (self.points.length >= 3) {
+          if (self.previewLayer) map.removeLayer(self.previewLayer);
+          self.previewLayer = L.polygon(self.points, {
+            color: '#3B82F6',
+            weight: 3,
+            opacity: 0.8,
+            fillOpacity: 0.2,
+            dashArray: '5, 5'
+          }).addTo(map);
+        } else if (self.points.length === 2) {
+          // Show line preview before 3rd point
+          if (self.previewLayer) map.removeLayer(self.previewLayer);
+          self.previewLayer = L.polyline(self.points, {
+            color: '#3B82F6',
+            weight: 3,
+            opacity: 0.8,
+            dashArray: '5, 5'
+          }).addTo(map);
+        }
+      };
+
+      const onDblClick = function(e) {
+        L.DomEvent.stop(e);
+        console.log('✅ Polygon complete (double-click detected)');
+        self.finish();
+      };
+
+      map.on('click', onClick);
+      map.on('dblclick', onDblClick);
+
+      // Store for cleanup
+      self._handlers.onClick = onClick;
+      self._handlers.onDblClick = onDblClick;
+    },
+
+    finish: function() {
+      const map = window.__leafy_found_map;
+      if (!map || !isMapLike(map)) return;
+
+      if (this.points.length >= 3) {
+        const geojson = {
+          type: "Feature",
+          geometry: {
+            type: "Polygon",
+            coordinates: [this.points.map(p => [p[1], p[0]])] // Array of rings, [lng, lat]
+          },
+          properties: {
+            tool: 'area',
+            color: '#3B82F6',
+            strokeWeight: 3,
+            fillOpacity: 0.3
+          }
+        };
+
+        window.__leafy_last_area = geojson;
+        console.log('✅ Polygon created -> window.__leafy_last_area', geojson);
+
+        // Clear preview
+        if (this.previewLayer) {
+          map.removeLayer(this.previewLayer);
+          this.previewLayer = null;
+        }
+
+        // AUTO-RENDER: Draw permanent layer if enabled
+        if (this.autoRender) {
+          const leafletCoords = geojson.geometry.coordinates[0].map(c => [c[1], c[0]]);
+          const permanentLayer = L.polygon(leafletCoords, {
+            color: geojson.properties.color,
+            weight: geojson.properties.strokeWeight,
+            fillOpacity: geojson.properties.fillOpacity,
+            opacity: 1
+          }).addTo(map);
+
+          console.log('🖼️ Auto-rendered on map (permanent)');
+
+          // Store reference
+          if (!window.__leafy_rendered_layers) window.__leafy_rendered_layers = [];
+          window.__leafy_rendered_layers.push(permanentLayer);
+        }
+
+        // Notify Bubble
+        if (typeof window.bubble_fn_areaComplete === 'function') {
+          window.bubble_fn_areaComplete(JSON.stringify(geojson));
+        }
+      } else {
+        console.log('⚠️ Polygon needs at least 3 points, discarded.');
+      }
+
+      this.cleanup();
+    },
+
+    stop: function() {
+      console.log('🛑 Area tool stopped.');
+      this.cleanup();
+    },
+
+    cleanup: function() {
+      const map = window.__leafy_found_map;
+      if (!map || !isMapLike(map)) return;
+      const container = map.getContainer();
+
+      // Remove event listeners
+      if (this._handlers.onClick) map.off('click', this._handlers.onClick);
+      if (this._handlers.onDblClick) map.off('dblclick', this._handlers.onDblClick);
+
+      // Clear visual elements
+      this.markers.forEach(m => map.removeLayer(m));
+      if (this.previewLayer) map.removeLayer(this.previewLayer);
+
+      // Reset state
+      this.points = [];
+      this.markers = [];
+      this.previewLayer = null;
+      this._handlers = {};
+      container.style.cursor = '';
+    }
+  };
+
+  // ===== UNIVERSAL UTILITY FUNCTIONS =====
+
+  // Stop all drawing tools at once
+  window.stopAllDrawingTools = function() {
+    if (window.__leafy_point) window.__leafy_point.stop();
+    if (window.__leafy_line) window.__leafy_line.stop();
+    if (window.__leafy_freehand) window.__leafy_freehand.stop();
+    if (window.__leafy_area) window.__leafy_area.stop();
+    console.log('🛑 All drawing tools stopped');
+  };
+
+  // Remove any drawing type from map by ID
+  window.removeDrawing = function(drawingId) {
+    if (!window.__drawing_layers || !window.__drawing_layers[drawingId]) {
+      console.warn('⚠️ Drawing not found:', drawingId);
+      return;
+    }
+
+    const drawing = window.__drawing_layers[drawingId];
+    const map = window.__leafy_found_map;
+
+    if (map) {
+      if (drawing.layer) map.removeLayer(drawing.layer);
+      if (drawing.marker) map.removeLayer(drawing.marker);
+    }
+
+    delete window.__drawing_layers[drawingId];
+    console.log('🗑️ Drawing removed:', drawingId, '(type:', drawing.type + ')');
+  };
+
+  // Update drawing color for any type (Point, Line, Polygon)
+  window.updateDrawingColor = function(drawingId, newColor) {
+    if (!window.__drawing_layers || !window.__drawing_layers[drawingId]) {
+      console.warn('⚠️ Drawing not found:', drawingId);
+      return;
+    }
+
+    const drawing = window.__drawing_layers[drawingId];
+    const map = window.__leafy_found_map;
+
+    if (!map) {
+      console.error('❌ Map not found');
+      return;
+    }
+
+    // Update line/polygon stroke color
+    if (drawing.layer && drawing.layer.setStyle) {
+      drawing.layer.setStyle({ color: newColor });
+    }
+
+    // Update center marker color (for polyline/polygon)
+    if (drawing.marker && drawing.type !== 'point') {
+      const latlng = drawing.marker.getLatLng();
+
+      // Remove old marker
+      map.removeLayer(drawing.marker);
+
+      // Create new marker with updated color (SVG pin)
+      const newMarker = L.marker(latlng, {
+        icon: L.divIcon({
+          html: '<svg width="25" height="41" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg">' +
+            '<path d="M12.5 0C5.6 0 0 5.6 0 12.5C0 21.9 12.5 41 12.5 41S25 21.9 25 12.5C25 5.6 19.4 0 12.5 0Z" ' +
+            'fill="' + newColor + '" stroke="white" stroke-width="2"/>' +
+            '<circle cx="12.5" cy="12.5" r="4" fill="white"/>' +
+            '</svg>',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          className: 'drawing-marker-center'
+        })
+      }).addTo(map);
+
+      // Re-attach click handler
+      newMarker.on('click', function(e) {
+        L.DomEvent.stopPropagation(e);
+        if (window.bubble_fn_drawing_selected) {
+          window.bubble_fn_drawing_selected(drawingId);
+        }
+      });
+
+      drawing.marker = newMarker;
+    }
+
+    // Update Point marker color (recreate with new SVG)
+    if (drawing.type === 'point' && drawing.marker) {
+      const latlng = drawing.marker.getLatLng();
+
+      map.removeLayer(drawing.marker);
+
+      const newPointMarker = L.marker(latlng, {
+        icon: L.divIcon({
+          html: '<svg width="25" height="41" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg">' +
+            '<path d="M12.5 0C5.6 0 0 5.6 0 12.5C0 21.9 12.5 41 12.5 41S25 21.9 25 12.5C25 5.6 19.4 0 12.5 0Z" ' +
+            'fill="' + newColor + '" stroke="white" stroke-width="2"/>' +
+            '<circle cx="12.5" cy="12.5" r="4" fill="white"/>' +
+            '</svg>',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          className: 'drawing-marker-point'
+        })
+      }).addTo(map);
+
+      newPointMarker.on('click', function(e) {
+        L.DomEvent.stopPropagation(e);
+        if (window.bubble_fn_drawing_selected) {
+          window.bubble_fn_drawing_selected(drawingId);
+        }
+      });
+
+      drawing.marker = newPointMarker;
+      drawing.layer = newPointMarker;
+    }
+
+    console.log('🎨 Drawing color updated:', drawingId, '→', newColor);
+  };
+
+  // Update polygon fill opacity (safe to call on any type)
+  window.updateDrawingOpacity = function(drawingId, newOpacity) {
+    if (!window.__drawing_layers || !window.__drawing_layers[drawingId]) {
+      console.warn('⚠️ Drawing not found:', drawingId);
+      return;
+    }
+
+    const drawing = window.__drawing_layers[drawingId];
+
+    // Only polygons have fillOpacity
+    if (drawing.type === 'polygon' && drawing.layer && drawing.layer.setStyle) {
+      drawing.layer.setStyle({ fillOpacity: newOpacity });
+      console.log('✨ Polygon opacity updated:', drawingId, '→', newOpacity);
+    } else {
+      console.log('ℹ️ Opacity only applies to polygons (type:', drawing.type + ')');
+    }
+  };
+
   // ===== HELPER FUNCTIONS =====
 
   window.createGeoJSON = function(type, coordinates, properties) {
@@ -519,7 +970,17 @@
   console.log('  📍 Point:');
   console.log('    - window.__leafy_point.start()                       → Place marker');
   console.log('    - window.__leafy_point.start({autoRender: true})    → Place marker (keeps on map)');
+  console.log('  📏 Line:');
+  console.log('    - window.__leafy_line.start()                        → Click vertices, dbl-click finish');
+  console.log('    - window.__leafy_line.start({autoRender: true})     → Line (keeps on map)');
+  console.log('  🔶 Area:');
+  console.log('    - window.__leafy_area.start()                        → Click vertices, dbl-click close');
+  console.log('    - window.__leafy_area.start({autoRender: true})     → Polygon (keeps on map)');
   console.log('  🧹 Utilities:');
+  console.log('    - window.stopAllDrawingTools()                       → Stop all drawing modes');
+  console.log('    - window.removeDrawing(id)                           → Remove any drawing from map');
+  console.log('    - window.updateDrawingColor(id, color)               → Update drawing color');
+  console.log('    - window.updateDrawingOpacity(id, opacity)           → Update polygon opacity');
   console.log('    - window.__leafy_freehand.clearAllRendered()        → Clear all drawings');
   console.log('    - window.renderDrawingOnMap(geojson)                → Render any GeoJSON');
 

@@ -1,387 +1,261 @@
 # CLAUDE.md - Water Infrastructure Interactive Map
 
-*Quick reference guide for AI assistants and developers working with this repository*
+*Quick reference guide for AI assistants working with this repository*
+
 ---
-My name is Rafael
----
-When asked to update documention:
-- review and update claude.md with relevant informations only.
-- review and update bubble/README.md file. Delete old and irrelevant information, update important information only. These files must have only crucial information for understand the project and progress , current state and next steps. A document that a new member of the team can read, understand and continue working on this by himself.
-when commiting do not add "🤖 Generated with Claude Code" Only add Co-Authored-By: Claude Code
+
+## 👤 User Info
+- **Name**: Rafael
+- **Commit format**: Co-Authored-By: Claude <noreply@anthropic.com> (NO 🤖 emoji)
+- **Documentation**: Keep CLAUDE.md and bubble/README.md lean - only crucial info
+
 ---
 
 ## 🎯 Project Overview
 
-**Water Infrastructure Interactive Map** is a B2B SaaS platform for canal companies, water districts, and farmers to visualize and manage water infrastructure through interactive mapping with role-based privacy controls.
+**Water Infrastructure Interactive Map** - B2B SaaS platform for canal companies to visualize and manage water infrastructure with interactive mapping and role-based privacy controls.
 
-### Dual Implementation Strategy
+### Implementation Strategy
+- **Next.js Prototype** (Complete) - Reference implementation for behavior
+- **Bubble.io Production** (In Progress) - Target platform with Leafy Maps + custom JavaScript
 
-1. **Next.js Prototype** (Reference Implementation)
-   - Fully functional behavioral reference
-   - Next.js 15 + React 19 + TypeScript + Leaflet
-   - Deployed on Vercel with Supabase backend
-
-2. **Bubble.io Production** (Target Implementation)
-   - 8-week implementation timeline
-   - Leafy Maps plugin + custom JavaScript extensions
-   - Feature parity goal: 100%
-
-**Current Status**: Next.js complete, Bubble Phase 1 (Foundation & Database) ready to start
+### Current Status
+✅ **Phase 3 Complete**: Drawing Tools (Point, Line, Area, Freehand)
+🔜 **Phase 4 Next**: UI Components (Toolbar, Layers Panel, Details Panel)
 
 ---
 
 ## 📚 Documentation Map
 
-**Start here for your role**:
-
-| Document | Purpose | When to Use |
-|----------|---------|-------------|
-| **CLAUDE.md** (this file) | AI assistant quick reference | Every session start |
-| **bubble/docs/BUBBLE_IMPLEMENTATION_PLAN.md** | Detailed 8-week Bubble implementation | Building Bubble features |
-| **bubble/README.md** | Current Status |
-| **bubble/docs/freehand_draw_investigation_report.md** | Proven freehand drawing solution | Implementing map drawing |
-| **nextjs/docs/AGENTS.md** | Next.js client/server architecture | Working with Next.js code |
-| **README.md** | Project setup & installation | Initial setup |
+| Document | Purpose |
+|----------|---------|
+| **CLAUDE.md** (this file) | AI assistant quick reference |
+| **bubble/README.md** | Current status, recent updates, next steps |
+| **bubble/docs/BUBBLE_IMPLEMENTATION_PLAN.md** | Complete 8-week implementation roadmap |
+| **bubble/scripts/workflows/*.js** | Copy-paste workflow snippets for Bubble |
+| **nextjs/docs/AGENTS.md** | Next.js reference (client/server rules) |
 
 ---
 
 ## 🛠️ Tech Stack
 
-### Next.js Stack (Reference)
-```
-Frontend: Next.js 15 + React 19 + TypeScript + Leaflet 1.9.4 + React Leaflet 5.0
-UI: shadcn/ui + Radix UI + Tailwind CSS
-Backend: Next.js API routes + Supabase (Postgres)
-Deployment: Vercel
+**Bubble.io (Production)**:
+- Platform: Bubble.io visual editor
+- Maps: Leafy Maps plugin (ZeroQode) + custom JavaScript
+- Database: Bubble native tables + Option Sets
+- Mobile: BDK wrapper for iOS/Android
+
+**Next.js (Reference Only)**:
+- Next.js 15 + React 19 + TypeScript + Leaflet 1.9.4
+- Deployed on Vercel + Supabase
+
+---
+
+## ⚠️ Critical Bubble.io Patterns
+
+### 1. List Fields → JavaScript Arrays (CRITICAL!)
+
+**Problem**: Bubble passes list fields as strings, causing `TypeError: privacy.join is not a function`
+
+**Solution**:
+```javascript
+// In Bubble JavaScript action:
+var privacy = [<Result of Step X's privacy:each item Display:formatted as text>];
 ```
 
-### Bubble.io Stack (Target)
+**Configuration**:
+- In "formatted as text" field: `"This Text"`
+- Set delimiter: `,`
+- Result: `["User", "Ditch Rider", "Admin"]` (proper JavaScript array)
+
+### 2. Storage Pattern (Object, Not Array!)
+
+**✅ CORRECT**:
+```javascript
+window.__drawing_layers[drawingId] = { layer, marker, type };
 ```
-Platform: Bubble.io visual editor
-Maps: Leafy Maps plugin (ZeroQode) + custom JavaScript
-Database: Bubble native tables + Option Sets
-Mobile: BDK wrapper for Android/iOS
+
+**❌ WRONG** (causes color updates to fail):
+```javascript
+window.__drawing_state.drawings.push({ id, layer, marker, type });
+```
+
+### 3. Universal Utility Functions
+
+Available in `bubble-drawing-tools-v4.html`:
+
+```javascript
+window.stopAllDrawingTools();                    // Stop all 4 drawing modes
+window.removeDrawing(drawingId);                 // Remove any drawing type
+window.updateDrawingColor(drawingId, '#FF5733'); // Update color (recreates markers)
+window.updateDrawingOpacity(drawingId, 0.5);     // Update polygon opacity
+```
+
+### 4. Map Access Pattern
+
+```javascript
+var map = window.__leafy_found_map;  // Captured Leaflet map instance
+if (!map) {
+  console.error('Map not found');
+  return;
+}
+```
+
+### 5. Coordinate Simplification
+
+For freehand drawings exceeding 1MB text field limit:
+
+```javascript
+simplifyPath(points, 0.0001);  // Douglas-Peucker algorithm
+// Increase tolerance if still too large: 0.0001 → 0.0005
 ```
 
 ---
 
-## ⚠️ Critical Architecture Rules
+## 📊 Current Implementation Status
 
-### Next.js: Client/Server Boundary
+| Phase | Status | Key Features |
+|-------|--------|--------------|
+| **1. Foundation** | ✅ Complete | Database schema, Option Sets, User roles |
+| **2. Map Setup** | ✅ Complete | Leafy Maps integration, map capture, load drawings |
+| **3. Drawing Tools** | ✅ Complete | Point, Line, Area, Freehand + tooltips + @ badge |
+| **4. UI Components** | 🔜 Next | Toolbar, Layers Panel, Details Panel |
+| **5. Business Logic** | ⏳ Pending | Privacy filtering, approval workflows |
+| **6. Mobile** | ⏳ Pending | Responsive design, touch optimization |
+| **7. Testing** | ⏳ Pending | QA, bug fixes, performance |
+| **8. Deployment** | ⏳ Pending | Data migration, launch |
 
-**NEVER in Client Components** (`'use client'`):
-```typescript
-❌ import { supabase } from '@/lib/database-supabase'
-❌ import fs from 'fs'
-❌ process.env.DATABASE_URL
-```
-
-**ALWAYS in Client Components**:
-```typescript
-✅ fetch('/api/drawings')
-✅ import { drawingService } from '@/lib/drawingService'
-✅ process.env.NEXT_PUBLIC_SUPABASE_URL
-```
-
-**Data Flow**:
-```
-Client Components → drawingService → API Routes → Database (Supabase)
-```
-
-### Bubble.io: Platform Constraints
-
-**Limitations**:
-- Real-time updates: Polling only (not WebSockets)
-- Complex calculations: Backend workflows only
-- File storage: Bubble storage (consider S3 for scale)
-- Type safety: Use Option Sets for validation
-- Coordinate arrays: 1MB text field limit (use Douglas-Peucker simplification)
-
-**Workarounds**:
-- Freehand drawing: Custom JavaScript injection via page header
-- Map access: `window.__leafy_found_map` (proven pattern)
-- Heavy operations: Scheduled backend workflows
+**See**: `bubble/docs/BUBBLE_IMPLEMENTATION_PLAN.md` for full details
 
 ---
 
 ## 🗄️ Core Data Models
 
-### DrawingElement (TypeScript)
+### Drawing (Bubble.io)
 
-```typescript
-interface DrawingElement {
-  id: string;
-  type: 'line' | 'polygon' | 'polyline' | 'point';
-  coordinates: [number, number][] | [number, number];
-  markerPosition?: [number, number];
+**Fields**:
+- `type`: "point" | "polyline" | "polygon"
+- `coordinates`: Text (JSON array of [lng, lat] pairs)
+- `markerPosition`: Text (JSON [lat, lng] for markers)
+- `name`: Text
+- `color`: Text (hex color)
+- `elementType`: Option Set (Canal, Headgate, etc.)
+- `approvalStatus`: Option Set (pending, approved, rejected)
+- `showTooltip`: Text ("yes" | "no")
+- `privacy`: List of Account Types (User, Ditch Rider, Admin)
+- `createdBy`: User
+- `createdByRole`: Text
+- `properties`: Text (full GeoJSON Feature)
 
-  // Classification
-  elementType?: 'ride' | 'canal' | 'lateral' | 'headgate' | 'meter' |
-                'pump' | 'pivot' | 'land' | 'hazard' | 'maintenance' | 'custom';
-  linkedEntityId?: string;
-
-  // Core fields
-  name: string;
-  color: string;
-  description?: string;
-
-  // Privacy & approval
-  privacy?: PrivacySettings;
-  approvalStatus?: 'pending' | 'approved' | 'rejected';
-  createdBy?: string;
-  createdByRole?: 'User' | 'Ditch Rider' | 'Admin';
-
-  // Metadata
-  properties: {
-    strokeWeight: number;
-    fillOpacity?: number;
-    tool: 'line' | 'draw' | 'area' | 'point';
-  };
-
-  createdAt: Date;
-  updatedAt: Date;
-}
-```
-
-### PrivacySettings
-
-```typescript
-interface PrivacySettings {
-  roles: {
-    users: boolean;
-    ditchRiders: boolean;
-    admins: boolean; // Always true, disabled in UI
-  };
-  specificUsers?: string[];
-  linkedEntity?: boolean;
-}
-```
+**Option Sets**: DrawingTypes, ElementTypes, Roles, ApprovalStatus
 
 ---
 
 ## 🔑 Key Features
 
 ### Drawing Tools (4 types)
-1. **Point** - Single click marker
-2. **Line** - Click-based polyline (double-click to finish)
-3. **Freehand** - Mousedown + drag + mouseup for smooth polylines
-4. **Area** - Click-based polygon (double-click to finish)
+1. **Point** - Single-click marker with SVG pin
+2. **Line** - Click vertices, double-click to finish
+3. **Freehand** - Click-drag for smooth polylines
+4. **Area** - Click vertices, double-click to close polygon
 
-### Element Types (11 categories)
-- **Infrastructure**: Ride, Canal, Lateral, Headgate
-- **Monitoring**: Meter, Pump, Pivot
-- **Other**: Land, Hazard, Maintenance, Custom
+### User Roles
+- **Admin**: Full access, approve/reject drawings, create entities
+- **Ditch Rider**: Create drawings (pending approval), filtered view
+- **User**: View only, report issues
 
-### User Roles (3 levels)
-- **Admin**: Full access, approve/reject, create entities from drawings
-- **Ditch Rider**: Create drawings (pending approval), view filtered by privacy
-- **User**: View only, report issues, create hazard markers
-
-### Core Workflows
-- **Privacy Filtering**: Role-based access per drawing
-- **Approval Workflow**: pending → approved/rejected (Admin only)
-- **Entity Linking**: Auto-populate contact info from linked entities
-- **Create Entity from Drawing**: Admin promotes drawing → reusable entity
-
----
-
-## 💻 Development Commands
-
-### Next.js Development
-```bash
-npm run dev          # Start dev server (localhost:3000)
-npm run build        # Build for production
-npm start            # Start production server
-npm run lint         # Run ESLint
-npx tsc --noEmit     # Type checking
-```
-
-### Useful Searches
-```bash
-grep -r "DrawingOverlay" src/           # Find drawing implementation
-grep -r "usePersistentDrawing" src/     # Find state management
-grep -r "canRoleAccessPrivacy" src/     # Find privacy logic
-ls src/app/api/drawings/                # List API routes
-```
-
-### Database Operations (Supabase)
-```bash
-psql $DATABASE_URL < supabase-schema.sql
-curl https://[app].vercel.app/api/drawings > backup.json
-```
-
----
-
-## 🔍 Important Code Patterns
-
-### 1. Freehand Drawing (Proven Solution)
-
-```javascript
-// From bubble/docs/freehand_draw_investigation_report.md
-window.__leafy_found_map // Leaflet map instance (captured)
-
-// Enable freehand mode
-window.__leafy_freehand.start()
-
-// Get result after drawing
-window.__leafy_last_freehand // GeoJSON object
-
-// Key implementation details
-map.dragging.disable()  // During drawing
-simplifyPath(points, 0.0001)  // Douglas-Peucker for coordinate reduction
-```
-
-### 2. Privacy Check Helper
-
-```typescript
-function canRoleAccessPrivacy(privacy: PrivacySettings, role: UserRole): boolean {
-  if (privacy.roles.admins && role === 'Admin') return true;
-  if (privacy.roles.ditchRiders && role === 'Ditch Rider') return true;
-  if (privacy.roles.users && role === 'User') return true;
-  return false;
-}
-```
-
-### 3. Drawing State Management (Next.js)
-
-```typescript
-// usePersistentDrawing hook
-const { drawingState, createElement, updateElement, deleteElement } = usePersistentDrawing()
-
-// Auto-loads on mount, auto-saves with 500ms debounce
-// Validates before saving (filters blob URLs)
-```
-
-### 4. Dynamic Leaflet Import (SSR Issue)
-
-```typescript
-// Required because Leaflet depends on window object
-const InteractiveMap = dynamic(
-  () => import('@/components/InteractiveMap'),
-  { ssr: false }
-);
-```
-
----
-
-## 🧪 Common Issues & Solutions
-
-### Issue: "Module not found: Can't resolve 'fs'"
-**Cause**: Database import in client component
-**Solution**: Move database logic to API route, use `fetch()` or `drawingService`
-
-### Issue: Drawings not persisting after refresh
-**Cause**: Blob URLs in file attachments
-**Solution**: Upload files first, get permanent URLs (usePersistentDrawing filters automatically)
-
-### Issue: Map not initializing (Bubble.io)
-**Cause**: Leaflet not loaded or map capture script not working
-**Solution**:
-1. Check `window.__leafy_found_map` in console
-2. Verify map ID matches script
-3. Ensure Leafy Maps plugin loaded
-
-### Issue: Freehand coordinates too large (Bubble.io)
-**Cause**: Too many points exceeding 1MB text field
-**Solution**: Increase Douglas-Peucker tolerance (0.0001 → 0.0005)
-
----
-
-## 🗺️ Bubble.io Implementation Phases
-
-**See bubble/docs/BUBBLE_IMPLEMENTATION_PLAN.md for complete details**
-
-| Phase | Focus | Timeline |
-|-------|-------|----------|
-| 1 | Foundation & Database | Week 1 |
-| 2 | Map Setup & Rendering | Week 2 |
-| 3 | Drawing Tools | Week 3 |
-| 4 | UI Components | Week 4 |
-| 5 | Business Logic | Week 5-6 |
-| 6 | Mobile Responsiveness | Week 7 |
-| 7 | Testing & QA | Week 8 |
-| 8 | Data Migration & Deployment | Post-launch |
-
-**Current Phase**: Phase 1 - Foundation & Database (Ready to start)
-
----
-
-## 📋 Database Schema (Bubble.io)
-
-**Core Tables**:
-- **Drawings**: Main table (coordinates, type, privacy, approval status)
-- **Drawing Entities**: Infrastructure master data (canals, rides, etc.)
-- **Issues**: Issue tracking per drawing
-- **Users**: Built-in with custom role field
-
-**Option Sets** (use for data integrity):
-- DrawingTypes, ElementTypes, ValidEntityTypes, Roles, ApprovalStatus, ElementStatus, Categories, IssueStatus
-
-**See bubble/docs/BUBBLE_IMPLEMENTATION_PLAN.md Phase 1 for complete schema**
+### Visual Features
+- Rich 4-line tooltips (name, type, pending status, privacy)
+- @ badge for pending approval
+- SVG pin markers (25x41) for Points and center markers
+- Auto-render option for immediate visual feedback
 
 ---
 
 ## 🎯 AI Session Workflow
 
 ### Start of Session
-1. Read `/bubble/README.md` for latest status
-2. Check current implementation phase
-3. Review any open questions or blockers
+1. Read `bubble/README.md` for latest status and recent updates
+2. Check current phase and next steps
+3. Review any blockers or open questions
 
 ### During Session
-1. Follow existing patterns and architecture
-2. Refer to bubble/docs/BUBBLE_IMPLEMENTATION_PLAN.md for implementation details
-3. Test changes thoroughly
-4. Document any new decisions
+1. Follow existing patterns (especially storage and list field formats)
+2. Use workflow snippets from `bubble/scripts/workflows/*.js`
+3. Test changes thoroughly (especially color updates, delete, tooltip display)
+4. Document any new patterns discovered
 
 ### End of Session
-1. Update `/bubble/README.md` with session summary
-2. Note any new decisions or open questions
-3. Update implementation status in roadmap
+1. Update `bubble/README.md` with session summary under "Recent Updates"
+2. Update CLAUDE.md if new critical patterns discovered
+3. Clean up both files - remove outdated info
 
 ---
 
-## ⚡ Quick Reference Links
+## 🧪 Common Bubble.io Issues
 
-**Internal Docs**:
-- Implementation Plan: `bubble/docs/BUBBLE_IMPLEMENTATION_PLAN.md`
-- Project Context: `/bubble/README.md`
-- Freehand Proof: `bubble/docs/freehand_draw_investigation_report.md`
-- Next.js Rules: `nextjs/docs/AGENTS.md`
+### Issue: privacy.join is not a function
+**Cause**: Privacy field not formatted as JavaScript array
+**Solution**: Use `[<privacy:each item Display:formatted as text>]` syntax (see pattern #1 above)
 
-**External Resources**:
-- Leaflet: https://leafletjs.com/reference.html
-- Leafy Maps: https://docs.zeroqode.com/plugins/leafy-maps
-- Bubble Manual: https://manual.bubble.io/
-- Supabase: https://supabase.com/docs
+### Issue: Color updates don't show until page reload
+**Cause**: Using array storage instead of object
+**Solution**: Use `window.__drawing_layers[id] = {}` pattern (see pattern #2 above)
+
+### Issue: Map not found
+**Cause**: Leaflet not loaded or script timing issue
+**Solution**: Check `window.__leafy_found_map` in console, ensure page header script loaded first
+
+### Issue: Coordinates too large (>1MB)
+**Cause**: Too many points in freehand drawing
+**Solution**: Increase Douglas-Peucker tolerance: `0.0001` → `0.0005`
 
 ---
 
-### Bubble.io
-**Never**:
-- Create entities without tracking origin in metadata
+## ⚡ Quick Reference
+
+### Workflow Files
+- `bubble-point-tool.js` - Point tool snippets (6 snippets)
+- `bubble-line-tool.js` - Line tool snippets (5 snippets)
+- `bubble-area-tool.js` - Area tool snippets (5 snippets)
+- `bubble-load-drawings.js` - Load all drawings on page load
+
+### Page Header Script
+- `bubble-drawing-tools-v4.html` - Main script with all 4 tools + utilities
+
+### Key Bubble Workflows
+1. "When Page is loaded" - Register callbacks + load drawings
+2. "When [Tool] button is clicked" - Stop all tools + start selected tool
+3. "Save [Tool] Drawing" (custom event) - Database create + render on map
+4. "When Drawing is selected" - Show Details Panel
+5. "When Color Picker changed" - Update drawing + call utility function
+
+---
+
+## 📋 Bubble.io Best Practices
+
+### Always
+- Use Option Sets for predefined values (types, statuses, roles)
+- Test drawings save/reload correctly
+- Use object storage: `window.__drawing_layers[id]`
+- Format list fields properly before passing to JavaScript
+- Call `window.stopAllDrawingTools()` before starting new tool
+- Set `showTooltip` to "yes" by default
+
+### Never
+- Use array storage for drawings
+- Pass list fields without proper formatting
 - Skip privacy filtering in workflows
-
-**Always**:
-- Use Option Sets for predefined values
-- Test drawings save and reload
-- Validate privacy filtering per role
-- Check mobile responsiveness
+- Create drawings without tracking `createdBy` and `createdByRole`
+- Forget to add click handlers for selection
 
 ---
 
-## 📊 Success Metrics
+## 🔗 External Resources
 
-**Technical**:
-- Map load time: < 2 seconds
-- Drawing save/load: < 500ms
-- Support 1000+ drawings smoothly
-- 99% uptime
-
-**User Experience**:
-- 100% feature parity (Next.js ↔ Bubble)
-- Mobile-friendly all devices
-- No data loss
-- Intuitive drawing workflow
+- **Leaflet Docs**: https://leafletjs.com/reference.html
+- **Leafy Maps Plugin**: https://docs.zeroqode.com/plugins/leafy-maps
+- **Bubble Manual**: https://manual.bubble.io/
+- **GeoJSON Spec**: https://geojson.org/
 
 ---
