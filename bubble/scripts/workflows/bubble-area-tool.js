@@ -81,7 +81,7 @@ console.log('✅ Area tool activated - click to add vertices, double-click to cl
 // BUBBLE ACTION: Create a new Drawing
 // In the Bubble editor, create these field assignments:
 //
-// type = "polygon"
+// type = "area"
 // coordinates = <coordinates parameter>         // Array of [lng, lat] pairs (ring)
 // markerPosition = <markerPosition parameter>   // [lat, lng] center point
 // name = "Area - " + Current date/time (formatted as "MMM d, yyyy h:mm a")

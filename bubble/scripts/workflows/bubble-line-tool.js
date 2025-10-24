@@ -80,7 +80,7 @@ console.log('✅ Line tool activated - click to add vertices, double-click to fi
 // BUBBLE ACTION: Create a new Drawing
 // In the Bubble editor, create these field assignments:
 //
-// type = "polyline"
+// type = "line"
 // coordinates = <coordinates parameter>         // Array of [lng, lat] pairs
 // markerPosition = <markerPosition parameter>   // [lat, lng] center point
 // name = "Line - " + Current date/time (formatted as "MMM d, yyyy h:mm a")

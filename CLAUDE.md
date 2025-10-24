@@ -20,7 +20,7 @@
 - **Bubble.io Production** (In Progress) - Target platform with Leafy Maps + custom JavaScript
 
 ### Current Status
-✅ **Phase 3 Complete**: Drawing Tools (Point, Line, Area, Freehand)
+✅ **Phase 3 Complete**: Drawing Tools (Point, Line, Area, Freehand) + Cancel/Done buttons
 🔜 **Phase 4 Next**: UI Components (Toolbar, Layers Panel, Details Panel)
 
 ---
@@ -32,6 +32,7 @@
 | **CLAUDE.md** (this file) | AI assistant quick reference |
 | **bubble/README.md** | Current status, recent updates, next steps |
 | **bubble/docs/BUBBLE_IMPLEMENTATION_PLAN.md** | Complete 8-week implementation roadmap |
+| **bubble/docs/TOOLBAR_CANCEL_DONE_BUTTONS.md** | Cancel/Done buttons (Toolbox-specific, ~20 min) |
 | **bubble/scripts/workflows/*.js** | Copy-paste workflow snippets for Bubble |
 | **nextjs/docs/AGENTS.md** | Next.js reference (client/server rules) |
 
@@ -85,11 +86,20 @@ window.__drawing_state.drawings.push({ id, layer, marker, type });
 Available in `bubble-drawing-tools-v4.html`:
 
 ```javascript
-window.stopAllDrawingTools();                    // Stop all 4 drawing modes
+window.stopAllDrawingTools();                    // Stop all 4 drawing modes (Cancel button)
+window.finishCurrentDrawing();                   // Finish active drawing (Done button)
 window.removeDrawing(drawingId);                 // Remove any drawing type
 window.updateDrawingColor(drawingId, '#FF5733'); // Update color (recreates markers)
 window.updateDrawingOpacity(drawingId, 0.5);     // Update polygon opacity
 ```
+
+**Cancel/Done Button Pattern (Event-Driven, Lazy-Loaded):**
+- **Cancel:** Call `window.stopAllDrawingTools()` → Triggers `bubble_fn_drawingReset()` callback
+- **Done:** Call `window.finishCurrentDrawing()` → Completes drawing, triggers save callback
+- **Point Tracking:** JavaScript calls `bubble_fn_pointAdded({tool, pointCount})` after each click
+- **State Reset:** JavaScript calls `bubble_fn_drawingReset()` when tools stop
+- **Bubble States:** `activeTool` (text), `pointCount` (number) - updated via callbacks
+- **Lazy Loading:** Callbacks initialized on first Line/Area button click (not page load)
 
 ### 4. Map Access Pattern
 
@@ -134,7 +144,7 @@ simplifyPath(points, 0.0001);  // Douglas-Peucker algorithm
 ### Drawing (Bubble.io)
 
 **Fields**:
-- `type`: "point" | "polyline" | "polygon"
+- `type`: "point" | "line" | "area" | "draw" (lowercase, matches DrawingTypes Option Set)
 - `coordinates`: Text (JSON array of [lng, lat] pairs)
 - `markerPosition`: Text (JSON [lat, lng] for markers)
 - `name`: Text

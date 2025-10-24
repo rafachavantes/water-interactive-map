@@ -234,7 +234,7 @@
                 coordinates: simplified.map(p => [p[1], p[0]])
               },
               properties: {
-                tool: 'freehand',
+                tool: 'draw',
                 color: '#3B82F6',
                 strokeWeight: 3,
                 originalPointCount: self.currentPath.length,
@@ -484,6 +484,14 @@
 
         console.log(`📍 Vertex ${self.points.length} added`);
 
+        // Notify Bubble of point addition (for Cancel/Done button state)
+        if (typeof window.bubble_fn_pointAdded === 'function') {
+          window.bubble_fn_pointAdded({
+            tool: 'line',
+            pointCount: self.points.length
+          });
+        }
+
         // Update preview line
         if (self.points.length >= 2) {
           if (self.previewLayer) map.removeLayer(self.previewLayer);
@@ -636,6 +644,14 @@
 
         console.log(`📍 Vertex ${self.points.length} added`);
 
+        // Notify Bubble of point addition (for Cancel/Done button state)
+        if (typeof window.bubble_fn_pointAdded === 'function') {
+          window.bubble_fn_pointAdded({
+            tool: 'area',
+            pointCount: self.points.length
+          });
+        }
+
         // Update preview polygon
         if (self.points.length >= 3) {
           if (self.previewLayer) map.removeLayer(self.previewLayer);
@@ -763,7 +779,29 @@
     if (window.__leafy_line) window.__leafy_line.stop();
     if (window.__leafy_freehand) window.__leafy_freehand.stop();
     if (window.__leafy_area) window.__leafy_area.stop();
+
+    // Notify Bubble to reset drawing state (pointCount, activeTool)
+    if (typeof window.bubble_fn_drawingReset === 'function') {
+      window.bubble_fn_drawingReset();
+    }
+
     console.log('🛑 All drawing tools stopped');
+  };
+
+  // Finish current drawing (universal method for Done button)
+  window.finishCurrentDrawing = function() {
+    if (window.__leafy_line && window.__leafy_line.points.length >= 2) {
+      console.log('✅ Finishing line drawing via Done button');
+      window.__leafy_line.finish();
+    } else if (window.__leafy_area && window.__leafy_area.points.length >= 3) {
+      console.log('✅ Finishing area drawing via Done button');
+      window.__leafy_area.finish();
+    } else if (window.__leafy_freehand && window.__leafy_freehand.currentPath.length >= 2) {
+      console.log('✅ Finishing freehand drawing via Done button');
+      window.__leafy_freehand.finish();
+    } else {
+      console.warn('⚠️ No active drawing to finish or not enough points');
+    }
   };
 
   // Remove any drawing type from map by ID
@@ -977,7 +1015,8 @@
   console.log('    - window.__leafy_area.start()                        → Click vertices, dbl-click close');
   console.log('    - window.__leafy_area.start({autoRender: true})     → Polygon (keeps on map)');
   console.log('  🧹 Utilities:');
-  console.log('    - window.stopAllDrawingTools()                       → Stop all drawing modes');
+  console.log('    - window.stopAllDrawingTools()                       → Stop all drawing modes (Cancel)');
+  console.log('    - window.finishCurrentDrawing()                      → Finish active drawing (Done)');
   console.log('    - window.removeDrawing(id)                           → Remove any drawing from map');
   console.log('    - window.updateDrawingColor(id, color)               → Update drawing color');
   console.log('    - window.updateDrawingOpacity(id, opacity)           → Update polygon opacity');

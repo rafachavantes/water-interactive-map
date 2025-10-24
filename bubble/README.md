@@ -16,16 +16,17 @@ Production implementation of Water Infrastructure Interactive Map for Bubble.io.
 ### Completed Features
 
 **Drawing Tools (4 types):**
-- ✅ Freehand tool (click-drag polylines with path simplification)
-- ✅ Point tool (single-click markers with colored SVG pins)
-- ✅ Line tool (click-based polyline, double-click to finish)
-- ✅ Area tool (click-based polygon, double-click to close)
+- ✅ Freehand tool (click-drag polylines with path simplification) - type: "draw"
+- ✅ Point tool (single-click markers with colored SVG pins) - type: "point"
+- ✅ Line tool (click-based polyline, double-click to finish) - type: "line"
+- ✅ Area tool (click-based polygon, double-click to close) - type: "area"
 
 **Visual Features:**
 - ✅ Rich tooltips for all drawing types (name, type, pending status, privacy)
 - ✅ SVG pin markers for Point + center markers (consistent styling)
 - ✅ @ badge for pending approval on all markers
 - ✅ Vertex markers and dashed previews for Line/Area tools
+- ✅ Cancel/Done buttons for Line and Area tools (multi-click workflow)
 
 **Data Management:**
 - ✅ Load drawings on page refresh
@@ -37,16 +38,52 @@ Production implementation of Water Infrastructure Interactive Map for Bubble.io.
 **Technical:**
 - ✅ Page header script v4 with all 4 tools
 - ✅ Workflow guides for each tool (Point, Freehand, Line, Area)
-- ✅ JS-to-Bubble callback system
+- ✅ Universal methods: `finishCurrentDrawing()`, `stopAllDrawingTools()`
+- ✅ Event-driven callbacks: `bubble_fn_pointAdded()`, `bubble_fn_drawingReset()`
+- ✅ JS-to-Bubble callback system (event-driven, no polling)
 - ✅ Layer management and cleanup
 
 ### Next Steps
-- 🎛️ **Drawing Toolbar UI** - Mode toggle (Edit/View), tool buttons, role selector
+- 🎛️ **Drawing Toolbar UI** - Mode toggle (Edit/View), tool buttons, role selector, Cancel/Done buttons
 - 📋 **Layers Panel** - Categorized element types with counts and filters
 - 📄 **Details Panel** - Edit drawing properties, privacy, contact info
 - 📍 **Note:** Default `showTooltip` to "yes" in Bubble workflows when creating new drawings
 
 ## Recent Updates
+
+### 2025-10-24 - Event-Driven Cancel/Done Buttons (V2)
+
+**Event-Driven Architecture (No Polling!):**
+- ✅ JavaScript calls `bubble_fn_pointAdded({tool, pointCount})` after each vertex added (Line/Area tools)
+- ✅ JavaScript calls `bubble_fn_drawingReset()` when drawing stops/cancels
+- ✅ Instant point count updates (no 500ms delay)
+- ✅ Zero continuous polling - callbacks only fire when needed
+- ❌ Removed `window.getDrawingState()` - no longer needed with event-driven approach
+
+**New Features:**
+- ✅ Universal `window.finishCurrentDrawing()` method for Done button (works with Line, Area, Freehand)
+- ✅ Event-driven callbacks for point tracking and state reset
+- ✅ Lazy-loaded callbacks - only initialized when user actually draws
+- ✅ Toolbox-specific implementation guide - 5 parts, ~20 min (`docs/TOOLBAR_CANCEL_DONE_BUTTONS.md`)
+
+**Type Values Standardized (BREAKING CHANGE):**
+- ✅ Changed DrawingTypes Option Set values from "polyline"/"polygon" to lowercase "line"/"area"/"draw"/"point"
+- ✅ Updated all workflow guides to use lowercase type values
+- ✅ Updated load drawings script to check for "area" instead of "polygon"
+
+**Files Updated:**
+- `bubble-drawing-tools-v4.html` - Added event callbacks to Line/Area onClick handlers
+- `bubble-line-tool.js`, `bubble-area-tool.js`, `bubble-load-drawings.js` - Updated to lowercase types
+- `TOOLBAR_CANCEL_DONE_BUTTONS.md` - Final clean version: 170 lines, Toolbox-specific, no confusion
+- `CLAUDE.md` - Updated patterns and references
+
+**Action Required:**
+1. Update DrawingTypes Option Set: Delete "polyline"/"polygon", ensure "line"/"area"/"draw"/"point" exist
+2. Create 2 Toolbox elements: `update_point_count`, `reset_drawing`
+3. Follow guide in `docs/TOOLBAR_CANCEL_DONE_BUTTONS.md` (~20 min total)
+4. Use lowercase type values for new drawings
+
+---
 
 ### 2025-10-24 - Tooltip Enhancement & Storage Fix
 

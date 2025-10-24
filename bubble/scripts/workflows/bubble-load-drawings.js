@@ -135,8 +135,8 @@ var renderAllDrawings = function() {
 
         console.log('📍 Created point marker with colored pin' + (isPending ? ' (@)' : ''));
 
-      } else if (drawing.type === 'polygon') {
-        // Polygon (area)
+      } else if (drawing.type === 'area') {
+        // Area (polygon)
         layer = L.polygon(leafletCoords, {
           color: drawing.color,
           weight: 3,
@@ -144,10 +144,10 @@ var renderAllDrawings = function() {
           opacity: 1
         }).addTo(map);
 
-        console.log('🔷 Created polygon with', leafletCoords.length, 'vertices');
+        console.log('🔷 Created area polygon with', leafletCoords.length, 'vertices');
 
       } else {
-        // Polyline (line or freehand)
+        // Line or Draw (polyline)
         layer = L.polyline(leafletCoords, {
           color: drawing.color,
           weight: 3,
@@ -155,7 +155,7 @@ var renderAllDrawings = function() {
           smoothFactor: 1.0
         }).addTo(map);
 
-        console.log('📏 Created polyline with', leafletCoords.length, 'points');
+        console.log('📏 Created polyline with', leafletCoords.length, 'points (type: ' + drawing.type + ')');
       }
 
       // Add click handler to layer for selection
