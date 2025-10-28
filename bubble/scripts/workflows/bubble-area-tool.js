@@ -43,9 +43,9 @@ window.bubble_fn_areaComplete = function(geojsonString) {
   // Trigger Bubble workflow to save drawing
   if (window.bubble_fn_saveAreaDrawing) {
     bubble_fn_saveAreaDrawing({
-      coordinates: JSON.stringify(coords),           // Array of [lng, lat] pairs (ring)
-      markerPosition: JSON.stringify(markerPosition), // [lat, lng]
-      properties: geojsonString                       // Full GeoJSON Feature
+      properties: geojsonString,
+      coordinates: JSON.stringify(coords),
+      markerPosition: JSON.stringify(markerPosition)
     });
   } else {
     console.warn('⚠️ window.bubble_fn_saveAreaDrawing not defined. Create the save workflow first.');
@@ -55,8 +55,11 @@ window.bubble_fn_areaComplete = function(geojsonString) {
 console.log('✅ Area completion callback registered');
 
 // Example of what the output looks like:
-// geojsonString: '{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[-47.59,-23.51],[-47.60,-23.52],[-47.59,-23.53],[-47.59,-23.51]]]},"properties":{"tool":"area","color":"#3B82F6","strokeWeight":3,"fillOpacity":0.3}}'
-// NOTE: Polygon coordinates are array of rings (outer ring + optional holes)
+// geojsonString (full GeoJSON): '{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[-47.59,-23.51],[-47.60,-23.52],[-47.59,-23.53],[-47.59,-23.51]]]},"properties":{"tool":"area","color":"#3B82F6","strokeWeight":3,"fillOpacity":0.3}}'
+// coords (extracted first ring): [[-47.59,-23.51],[-47.60,-23.52],[-47.59,-23.53],[-47.59,-23.51]]
+//
+// NOTE: GeoJSON Polygon has triple-nested coordinates (array of rings), but we extract
+// the first ring [0] to get double-nested array for database storage
 
 // =====================================================
 // SNIPPET 2: ACTIVATE AREA TOOL
@@ -75,14 +78,19 @@ console.log('✅ Area tool activated - click to add vertices, double-click to cl
 // SNIPPET 3: SAVE AREA DRAWING TO DATABASE
 // =====================================================
 // Location: Custom Event workflow "Save Area Drawing"
-// Parameters needed: coordinates (text), markerPosition (text), properties (text)
+// Parameters needed (in this order): properties (text), coordinates (text), markerPosition (text)
 // Tool: Create a new thing → Drawing
+//
+// IMPORTANT: Parameter order must match callback at line 45-49:
+//   - output1 = properties (full GeoJSON)
+//   - output2 = coordinates (extracted first ring)
+//   - output3 = markerPosition (center point)
 
 // BUBBLE ACTION: Create a new Drawing
 // In the Bubble editor, create these field assignments:
 //
 // type = "area"
-// coordinates = <coordinates parameter>         // Array of [lng, lat] pairs (ring)
+// coordinates = <coordinates parameter>         // Array of [lng, lat] pairs (ring) - double-nested!
 // markerPosition = <markerPosition parameter>   // [lat, lng] center point
 // name = "Area - " + Current date/time (formatted as "MMM d, yyyy h:mm a")
 // color = "#3B82F6"
@@ -126,7 +134,7 @@ console.log('✅ Area tool activated - click to add vertices, double-click to cl
 // And delimiter is set to: ,
 // This creates a proper JavaScript array: ["User", "Ditch Rider", "Admin"]
 
-console.log('🖼️ Rendering polygon on map...');
+console.log('🖼️ Rendering area on map...');
 
 // Parse coordinates from database field
 var coordsText = '<COORDINATES>';
@@ -261,6 +269,8 @@ if (!map) {
 
   console.log('✅ Polygon rendered and stored:', drawingId);
 }
+// ⚠️ CRITICAL: Ensure the closing brace } above is included in your Bubble workflow!
+// Missing this brace will cause "SyntaxError: Unexpected end of input"
 
 // =====================================================
 // SNIPPET 5: STOP ALL DRAWING TOOLS (UNIVERSAL)
