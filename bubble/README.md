@@ -39,32 +39,48 @@ Production implementation of Water Infrastructure Interactive Map for Bubble.io.
 - ✅ Page header script v4 with all 4 tools
 - ✅ Workflow guides for each tool (Point, Freehand, Line, Area)
 - ✅ Universal methods: `finishCurrentDrawing()`, `stopAllDrawingTools()`
-- ✅ Event-driven callbacks: `bubble_fn_pointAdded()`, `bubble_fn_drawingReset()`
-- ✅ JS-to-Bubble callback system (event-driven, no polling)
+- ✅ Wrapper layer: `pointAdded()`, `lineComplete()`, `areaComplete()` (lazy-loaded)
+- ✅ Toolbox elements: `bubble_fn_update_point_count`, `bubble_fn_saveLineDrawing`, `bubble_fn_saveAreaDrawing`
+- ✅ JS-to-Bubble system (Page Header → Wrappers → Toolbox → Workflows)
 - ✅ Layer management and cleanup
 
 ### Next Steps
 - 🎛️ **Drawing Toolbar UI** - Mode toggle (Edit/View), tool buttons, role selector, Cancel/Done buttons
 - 📋 **Layers Panel** - Categorized element types with counts and filters
 - 📄 **Details Panel** - Edit drawing properties, privacy, contact info
-- 📍 **Note:** Default `showTooltip` to "yes" in Bubble workflows when creating new drawings
+
+### Important Bubble Setup
+- **Toolbox Elements:** `bubble_fn_update_point_count`, `bubble_fn_saveLineDrawing`, `bubble_fn_saveAreaDrawing`
+  - SaveLineDrawing/SaveAreaDrawing receive 3 outputs: `output1` (properties), `output2` (coordinates), `output3` (markerPosition)
+- **Wrapper Functions:** `pointAdded()`, `lineComplete()`, `areaComplete()` (initialized on Line button click)
+- **Custom Event:** "Reset Drawing State" (stops tools + resets states)
+- **Default:** Set `showTooltip` to "yes" when creating new drawings
 
 ## Recent Updates
 
-### 2025-10-24 - Event-Driven Cancel/Done Buttons (V2)
+### 2025-10-27 - Wrapper Architecture (V3 - Clean Names!)
 
-**Event-Driven Architecture (No Polling!):**
-- ✅ JavaScript calls `bubble_fn_pointAdded({tool, pointCount})` after each vertex added (Line/Area tools)
-- ✅ JavaScript calls `bubble_fn_drawingReset()` when drawing stops/cancels
-- ✅ Instant point count updates (no 500ms delay)
-- ✅ Zero continuous polling - callbacks only fire when needed
-- ❌ Removed `window.getDrawingState()` - no longer needed with event-driven approach
+**Wrapper + Toolbox Pattern:**
+- ✅ Page header calls plain-named wrappers: `pointAdded()`, `lineComplete()`, `areaComplete()`
+- ✅ Wrappers handle data transformation (marker position calculation)
+- ✅ Wrappers call Toolbox elements with `bubble_fn_` prefix using `{output1, output2, output3}` format
+- ✅ Toolbox elements trigger Bubble workflows with 3 separate outputs
+- ✅ Bubble custom event "Reset Drawing State" handles cleanup (no circular dependency)
+- ✅ Instant point count updates (no polling, no delays)
+- ✅ Architecture: Page Header → Wrappers → Toolbox → Bubble workflows
 
-**New Features:**
-- ✅ Universal `window.finishCurrentDrawing()` method for Done button (works with Line, Area, Freehand)
-- ✅ Event-driven callbacks for point tracking and state reset
-- ✅ Lazy-loaded callbacks - only initialized when user actually draws
-- ✅ Toolbox-specific implementation guide - 5 parts, ~20 min (`docs/TOOLBAR_CANCEL_DONE_BUTTONS.md`)
+**Toolbox Output Format:**
+- `output1` = Full GeoJSON Feature (properties)
+- `output2` = Coordinates array (coordinates field)
+- `output3` = Marker position [lat, lng] (markerPosition field)
+
+**Benefits:**
+- ✅ Clear separation of concerns (wrappers do JavaScript work, Bubble does business logic)
+- ✅ Easier to maintain (each layer has single responsibility)
+- ✅ Lazy loading (wrappers initialize on first button click)
+- ✅ No circular dependencies (`stopAllDrawingTools()` doesn't call Bubble)
+- ✅ Structured data format (Toolbox outputs map directly to database fields)
+- ✅ Updated guide: 7 parts, ~18 min (`docs/TOOLBAR_CANCEL_DONE_BUTTONS.md`)
 
 **Type Values Standardized (BREAKING CHANGE):**
 - ✅ Changed DrawingTypes Option Set values from "polyline"/"polygon" to lowercase "line"/"area"/"draw"/"point"
@@ -78,10 +94,12 @@ Production implementation of Water Infrastructure Interactive Map for Bubble.io.
 - `CLAUDE.md` - Updated patterns and references
 
 **Action Required:**
-1. Update DrawingTypes Option Set: Delete "polyline"/"polygon", ensure "line"/"area"/"draw"/"point" exist
-2. Create 2 Toolbox elements: `update_point_count`, `reset_drawing`
-3. Follow guide in `docs/TOOLBAR_CANCEL_DONE_BUTTONS.md` (~20 min total)
-4. Use lowercase type values for new drawings
+1. Update DrawingTypes Option Set: Ensure "line"/"area"/"draw"/"point" exist (lowercase)
+2. Create Toolbox elements: `bubble_fn_update_point_count`, `bubble_fn_saveLineDrawing`, `bubble_fn_saveAreaDrawing`
+3. Create Custom Event: "Reset Drawing State" (see `TOOLBAR_CANCEL_DONE_BUTTONS.md`)
+4. Initialize wrappers in Line button workflow (see guide)
+5. Follow guide in `docs/TOOLBAR_CANCEL_DONE_BUTTONS.md` (~18 min total)
+6. Use lowercase type values for new drawings
 
 ---
 

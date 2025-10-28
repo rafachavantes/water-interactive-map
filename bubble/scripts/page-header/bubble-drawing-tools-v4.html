@@ -485,11 +485,8 @@
         console.log(`📍 Vertex ${self.points.length} added`);
 
         // Notify Bubble of point addition (for Cancel/Done button state)
-        if (typeof window.bubble_fn_pointAdded === 'function') {
-          window.bubble_fn_pointAdded({
-            tool: 'line',
-            pointCount: self.points.length
-          });
+        if (typeof pointAdded === 'function') {
+          pointAdded({tool: 'line', pointCount: self.points.length});
         }
 
         // Update preview line
@@ -562,8 +559,8 @@
         }
 
         // Notify Bubble
-        if (typeof window.bubble_fn_lineComplete === 'function') {
-          window.bubble_fn_lineComplete(JSON.stringify(geojson));
+        if (typeof lineComplete === 'function') {
+          lineComplete(JSON.stringify(geojson));
         }
       } else {
         console.log('⚠️ Line needs at least 2 points, discarded.');
@@ -645,11 +642,8 @@
         console.log(`📍 Vertex ${self.points.length} added`);
 
         // Notify Bubble of point addition (for Cancel/Done button state)
-        if (typeof window.bubble_fn_pointAdded === 'function') {
-          window.bubble_fn_pointAdded({
-            tool: 'area',
-            pointCount: self.points.length
-          });
+        if (typeof pointAdded === 'function') {
+          pointAdded({tool: 'area', pointCount: self.points.length});
         }
 
         // Update preview polygon
@@ -734,8 +728,8 @@
         }
 
         // Notify Bubble
-        if (typeof window.bubble_fn_areaComplete === 'function') {
-          window.bubble_fn_areaComplete(JSON.stringify(geojson));
+        if (typeof areaComplete === 'function') {
+          areaComplete(JSON.stringify(geojson));
         }
       } else {
         console.log('⚠️ Polygon needs at least 3 points, discarded.');
@@ -779,11 +773,6 @@
     if (window.__leafy_line) window.__leafy_line.stop();
     if (window.__leafy_freehand) window.__leafy_freehand.stop();
     if (window.__leafy_area) window.__leafy_area.stop();
-
-    // Notify Bubble to reset drawing state (pointCount, activeTool)
-    if (typeof window.bubble_fn_drawingReset === 'function') {
-      window.bubble_fn_drawingReset();
-    }
 
     console.log('🛑 All drawing tools stopped');
   };

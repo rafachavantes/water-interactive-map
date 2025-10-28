@@ -20,7 +20,7 @@
 - **Bubble.io Production** (In Progress) - Target platform with Leafy Maps + custom JavaScript
 
 ### Current Status
-✅ **Phase 3 Complete**: Drawing Tools (Point, Line, Area, Freehand) + Cancel/Done buttons
+✅ **Phase 3 Complete**: Drawing Tools (Point, Line, Area, Freehand) + Cancel/Done buttons (wrapper architecture)
 🔜 **Phase 4 Next**: UI Components (Toolbar, Layers Panel, Details Panel)
 
 ---
@@ -32,7 +32,7 @@
 | **CLAUDE.md** (this file) | AI assistant quick reference |
 | **bubble/README.md** | Current status, recent updates, next steps |
 | **bubble/docs/BUBBLE_IMPLEMENTATION_PLAN.md** | Complete 8-week implementation roadmap |
-| **bubble/docs/TOOLBAR_CANCEL_DONE_BUTTONS.md** | Cancel/Done buttons (Toolbox-specific, ~20 min) |
+| **bubble/docs/TOOLBAR_CANCEL_DONE_BUTTONS.md** | Cancel/Done buttons (Wrapper + Toolbox pattern, ~18 min) |
 | **bubble/scripts/workflows/*.js** | Copy-paste workflow snippets for Bubble |
 | **nextjs/docs/AGENTS.md** | Next.js reference (client/server rules) |
 
@@ -86,20 +86,22 @@ window.__drawing_state.drawings.push({ id, layer, marker, type });
 Available in `bubble-drawing-tools-v4.html`:
 
 ```javascript
-window.stopAllDrawingTools();                    // Stop all 4 drawing modes (Cancel button)
+window.stopAllDrawingTools();                    // Stop all 4 drawing modes (JavaScript cleanup only)
 window.finishCurrentDrawing();                   // Finish active drawing (Done button)
 window.removeDrawing(drawingId);                 // Remove any drawing type
 window.updateDrawingColor(drawingId, '#FF5733'); // Update color (recreates markers)
 window.updateDrawingOpacity(drawingId, 0.5);     // Update polygon opacity
 ```
 
-**Cancel/Done Button Pattern (Event-Driven, Lazy-Loaded):**
-- **Cancel:** Call `window.stopAllDrawingTools()` → Triggers `bubble_fn_drawingReset()` callback
-- **Done:** Call `window.finishCurrentDrawing()` → Completes drawing, triggers save callback
-- **Point Tracking:** JavaScript calls `bubble_fn_pointAdded({tool, pointCount})` after each click
-- **State Reset:** JavaScript calls `bubble_fn_drawingReset()` when tools stop
-- **Bubble States:** `activeTool` (text), `pointCount` (number) - updated via callbacks
-- **Lazy Loading:** Callbacks initialized on first Line/Area button click (not page load)
+**Cancel/Done Button Pattern (Wrapper + Toolbox):**
+- **Cancel:** Trigger "Reset Drawing State" event → Calls `stopAllDrawingTools()` + resets states
+- **Done:** Call `window.finishCurrentDrawing()` → Calls wrapper → Toolbox (with output1/2/3) → Bubble workflow
+- **Point Tracking:** JavaScript calls `pointAdded({tool, pointCount})` → Wrapper extracts count → Toolbox element
+- **State Reset:** Bubble "Reset Drawing State" event handles both JS cleanup and state reset
+- **Bubble States:** `activeTool` (text), `pointCount` (number) - updated via Toolbox elements
+- **Architecture:** Page Header → Wrappers (plain names) → Toolbox (bubble_fn_ prefix + outputs) → Workflows
+- **Toolbox Format:** Wrappers pass `{output1, output2, output3}` to match Bubble's Toolbox plugin requirements
+- **Lazy loading:** Wrappers initialize on first Line button click (not page load)
 
 ### 4. Map Access Pattern
 
@@ -233,12 +235,34 @@ simplifyPath(points, 0.0001);  // Douglas-Peucker algorithm
 ### Page Header Script
 - `bubble-drawing-tools-v4.html` - Main script with all 4 tools + utilities
 
+### Key Bubble Elements
+**Wrapper Functions (initialized on Line button click):**
+- `pointAdded(data)` - Receives {tool, pointCount} → Calls `bubble_fn_update_point_count()`
+- `lineComplete(geojson)` - Calculates marker position → Calls `bubble_fn_saveLineDrawing({output1, output2, output3})`
+- `areaComplete(geojson)` - Calculates marker position → Calls `bubble_fn_saveAreaDrawing({output1, output2, output3})`
+
+**Toolbox (JavaScript to Bubble):**
+- `bubble_fn_update_point_count` - Receives point count from wrapper
+- `bubble_fn_saveLineDrawing` - Receives 3 outputs:
+  - `output1` = Full GeoJSON Feature (properties field)
+  - `output2` = Coordinates array (coordinates field)
+  - `output3` = Marker position [lat, lng] (markerPosition field)
+- `bubble_fn_saveAreaDrawing` - Receives 3 outputs:
+  - `output1` = Full GeoJSON Feature (properties field)
+  - `output2` = Coordinates array (coordinates field)
+  - `output3` = Marker position [lat, lng] (markerPosition field)
+
+**Custom Events:**
+- "Reset Drawing State" - Stops tools + resets states (prevents circular dependency)
+
 ### Key Bubble Workflows
-1. "When Page is loaded" - Register callbacks + load drawings
-2. "When [Tool] button is clicked" - Stop all tools + start selected tool
-3. "Save [Tool] Drawing" (custom event) - Database create + render on map
+1. "When Page is loaded" - Load drawings on map
+2. "When Line button is clicked" - Initialize wrappers + Trigger "Reset Drawing State" + start tool
+3. "When [Toolbox element] value returned" - Save to database + render on map
 4. "When Drawing is selected" - Show Details Panel
 5. "When Color Picker changed" - Update drawing + call utility function
+
+**Note:** Wrappers are initialized lazily on first Line button click, then reused for both Line and Area tools.
 
 ---
 

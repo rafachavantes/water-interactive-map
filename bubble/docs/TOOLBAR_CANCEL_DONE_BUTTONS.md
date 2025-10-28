@@ -1,14 +1,14 @@
 # Cancel & Done Buttons for Drawing Toolbar
 
-Simple implementation using Toolbox "JavaScript to Bubble" plugin.
+Simple implementation using Toolbox "JavaScript to Bubble" plugin + Custom Events + Wrapper Functions.
 
-**Time:** ~20 minutes
+**Time:** ~18 minutes (7 parts)
 
 ---
 
-## Part 1: Toolbox Elements (5 min)
+## Part 1: Toolbox Elements (7 min)
 
-Create 2 "JavaScript to Bubble" elements in your Bubble editor:
+Create 3 "JavaScript to Bubble" elements in your Bubble editor:
 
 ### Element 1: "UpdatePointCount"
 - **Element name:** UpdatePointCount
@@ -23,18 +23,68 @@ Action: Set State
   Value: UpdatePointCount's value
 ```
 
-### Element 2: "ResetDrawing"
-- **Element name:** ResetDrawing
-- **Function suffix:** `reset_drawing`
-- **Return value type:** text (doesn't matter)
+### Element 2: "SaveLineDrawing"
+- **Element name:** SaveLineDrawing
+- **Function suffix:** `saveLineDrawing`
+- **Return value type:** text
 
-**Workflow:** "When ResetDrawing's value is returned"
+**Receives 3 outputs from JavaScript:**
+- `output1` - Full GeoJSON Feature (string)
+- `output2` - Coordinates array [[lng,lat],...] (string)
+- `output3` - Marker position [lat,lng] (string)
+
+**Workflow:** "When SaveLineDrawing's value is returned"
 ```
-Action 1: Set State
-  pointCount = 0
+Action 1: Create new Drawing
+  type = "line"
+  coordinates = SaveLineDrawing's output2 (already JSON string)
+  markerPosition = SaveLineDrawing's output3 (already JSON string)
+  properties = SaveLineDrawing's output1 (full GeoJSON)
+  name = "Line - " + Current date/time
+  color = "#3B82F6"
+  elementType = "custom"
+  approvalStatus = (Current User's role = "Admin" ? "approved" : "pending")
+  createdBy = Current User
+  createdByRole = Current User's role
+  showTooltip = "yes"
+  privacy = [List of Account Types]
 
-Action 2: Set State
-  activeTool = empty
+Action 2: Render on map (optional if using load drawings workflow)
+
+Action 3: Trigger Custom Event
+  Event: "Reset Drawing State"
+```
+
+### Element 3: "SaveAreaDrawing"
+- **Element name:** SaveAreaDrawing
+- **Function suffix:** `saveAreaDrawing`
+- **Return value type:** text
+
+**Receives 3 outputs from JavaScript:**
+- `output1` - Full GeoJSON Feature (string)
+- `output2` - Coordinates array [[[lng,lat],...]] (string)
+- `output3` - Marker position [lat,lng] (string)
+
+**Workflow:** "When SaveAreaDrawing's value is returned"
+```
+Action 1: Create new Drawing
+  type = "area"
+  coordinates = SaveAreaDrawing's output2 (already JSON string)
+  markerPosition = SaveAreaDrawing's output3 (already JSON string)
+  properties = SaveAreaDrawing's output1 (full GeoJSON)
+  name = "Area - " + Current date/time
+  color = "#3B82F6"
+  elementType = "custom"
+  approvalStatus = (Current User's role = "Admin" ? "approved" : "pending")
+  createdBy = Current User
+  createdByRole = Current User's role
+  showTooltip = "yes"
+  privacy = [List of Account Types]
+
+Action 2: Render on map (optional if using load drawings workflow)
+
+Action 3: Trigger Custom Event
+  Event: "Reset Drawing State"
 ```
 
 ---
@@ -50,29 +100,91 @@ Action 2: Set State
 
 ---
 
-## Part 3: Line Button Workflow (8 min)
+## Part 3: Custom Event "Reset Drawing State" (2 min)
+
+Create a custom event that handles both JavaScript cleanup and Bubble state reset.
+
+**Event name:** "Reset Drawing State"
+
+**Steps:**
+```
+Step 1: Run JavaScript
+  window.stopAllDrawingTools();
+
+Step 2: Set State
+  pointCount = 0
+
+Step 3: Set State
+  activeTool = "select"
+```
+
+**Purpose:** Prevents circular dependency by having Bubble orchestrate the full reset (JavaScript cleanup + state management).
+
+---
+
+## Part 5: Line Button Workflow (4 min)
 
 **Workflow:** "When Line button is clicked"
 
 ```
-Action 1: Run JavaScript (initialize on first use)
-  if (!window.bubble_fn_pointAdded) {
-    // When map is clicked, page header calls: bubble_fn_pointAdded({tool:"line", pointCount:1})
-    // We extract the number and pass to Toolbox element
-    window.bubble_fn_pointAdded = function(data) {
-      update_point_count(data.pointCount);
+Action 1: Run JavaScript (Initialize wrappers - lazy load, runs once)
+  if (!window.pointAdded) {
+    // Wrapper: Point counting for Line/Area tools
+    window.pointAdded = function(data) {
+      bubble_fn_update_point_count(data.pointCount);
     };
 
-    // When drawing stops, page header calls: bubble_fn_drawingReset()
-    // We trigger the Toolbox element to reset states
-    window.bubble_fn_drawingReset = function() {
-      reset_drawing();
+    // Wrapper: Line tool completion
+    window.lineComplete = function(geojsonString) {
+      var geojson = JSON.parse(geojsonString);
+
+      // Calculate marker position (center of line)
+      var coords = geojson.geometry.coordinates;
+      var sumLat = 0, sumLng = 0;
+      coords.forEach(function(coord) {
+        sumLng += coord[0];
+        sumLat += coord[1];
+      });
+      var centerLng = sumLng / coords.length;
+      var centerLat = sumLat / coords.length;
+      var markerPosition = [centerLat, centerLng];
+
+      // Call Toolbox element with output1, output2, output3
+      bubble_fn_saveLineDrawing({
+        output1: geojsonString,                    // Full GeoJSON Feature
+        output2: JSON.stringify(coords),           // Coordinates array
+        output3: JSON.stringify(markerPosition)    // Marker position [lat,lng]
+      });
     };
+
+    // Wrapper: Area tool completion
+    window.areaComplete = function(geojsonString) {
+      var geojson = JSON.parse(geojsonString);
+
+      // Calculate marker position (centroid of polygon)
+      var coords = geojson.geometry.coordinates[0];  // First ring
+      var sumLat = 0, sumLng = 0;
+      coords.forEach(function(coord) {
+        sumLng += coord[0];
+        sumLat += coord[1];
+      });
+      var centerLng = sumLng / coords.length;
+      var centerLat = sumLat / coords.length;
+      var markerPosition = [centerLat, centerLng];
+
+      // Call Toolbox element with output1, output2, output3
+      bubble_fn_saveAreaDrawing({
+        output1: geojsonString,                               // Full GeoJSON Feature
+        output2: JSON.stringify(geojson.geometry.coordinates), // Coordinates array
+        output3: JSON.stringify(markerPosition)               // Marker position [lat,lng]
+      });
+    };
+
+    console.log('✅ Wrappers initialized');
   }
 
-Action 2: Run JavaScript
-  window.stopAllDrawingTools();
-  // This calls bubble_fn_drawingReset() which triggers ResetDrawing element
+Action 2: Trigger Custom Event
+  Event: "Reset Drawing State"
 
 Action 3: Set State
   activeTool = "line"
@@ -81,19 +193,21 @@ Action 4: Run JavaScript
   window.__leafy_line.start();
 ```
 
-**Note:** We don't manually reset pointCount here - `stopAllDrawingTools()` already does it via the ResetDrawing Toolbox element.
+**Note:** Wrappers are initialized once on first button click (lazy loading) and handle data transformation before calling Toolbox elements.
 
 ---
 
-## Part 4: Area Button (2 min)
+## Part 6: Area Button (1 min)
 
 Same as Line button, but:
 - Action 3: `activeTool = "area"`
 - Action 4: `window.__leafy_area.start()`
 
+**Note:** Wrappers are already initialized by Line button, so all actions are the same except tool name.
+
 ---
 
-## Part 5: Cancel & Done Buttons (3 min)
+## Part 7: Cancel & Done Buttons (2 min)
 
 ### Cancel Button
 
@@ -101,7 +215,7 @@ Same as Line button, but:
 
 **Workflow:**
 ```
-Run JavaScript: window.stopAllDrawingTools();
+Trigger Custom Event: "Reset Drawing State"
 ```
 
 ### Done Button
@@ -112,8 +226,9 @@ Run JavaScript: window.stopAllDrawingTools();
 ```
 Run JavaScript: window.finishCurrentDrawing();
 // finishCurrentDrawing() calls the appropriate tool's finish() method
-// which triggers the save callback (bubble_fn_lineComplete or bubble_fn_areaComplete)
-// After save completes, your save workflow should call window.stopAllDrawingTools()
+// which triggers the save wrapper (lineComplete or areaComplete)
+// The wrapper calls the Toolbox element which triggers the save workflow
+// After save completes, your save workflow should trigger "Reset Drawing State" event
 ```
 
 ---
@@ -130,40 +245,60 @@ Run JavaScript: window.finishCurrentDrawing();
 
 ```
 User clicks Line button
-  → Initialize callbacks (first time only)
-  → Stop all tools (resets states via ResetDrawing element)
+  → Initialize wrappers (first time only)
+  → Trigger "Reset Drawing State" (stops tools + resets states)
   → Set activeTool="line"
   → Start line tool
 
 User clicks map
-  → Page header: bubble_fn_pointAdded({tool:"line", pointCount:1})
-  → Your code: update_point_count(1)
+  → Page header: pointAdded({tool, pointCount:1})
+  → Wrapper: bubble_fn_update_point_count(1)
   → Toolbox: Triggers workflow, sets pointCount=1
   → Cancel button appears
 
 User clicks map again
-  → Page header: bubble_fn_pointAdded({tool:"line", pointCount:2})
-  → Your code: update_point_count(2)
+  → Page header: pointAdded({tool, pointCount:2})
+  → Wrapper: bubble_fn_update_point_count(2)
   → Toolbox: Sets pointCount=2
   → Done button appears
 
 User clicks Done
-  → finishCurrentDrawing() → Saves → stopAllDrawingTools()
-  → Page header: bubble_fn_drawingReset()
-  → Your code: reset_drawing()
-  → Toolbox: Resets both states
+  → finishCurrentDrawing()
+  → Page header: lineComplete(geojson)
+  → Wrapper: Calculates marker position → bubble_fn_saveLineDrawing({output1, output2, output3})
+  → Toolbox: Triggers save workflow
+  → Save workflow receives 3 outputs: properties, coordinates, markerPosition
+  → Save workflow final step: Trigger "Reset Drawing State"
 ```
 
 ---
 
 ## Summary
 
-**Toolbox Elements:**
-- `update_point_count` - Updates pointCount state
-- `reset_drawing` - Resets pointCount and activeTool states
+**Architecture:**
+Page Header → Wrappers → Toolbox Elements → Bubble Workflows
 
-**Wrapper Functions:**
-- `window.bubble_fn_pointAdded(data)` - Extracts number, calls `update_point_count()`
-- `window.bubble_fn_drawingReset()` - Calls `reset_drawing()`
+**Wrapper Functions (initialized on Line button click):**
+- `pointAdded(data)` → Extracts point count → `bubble_fn_update_point_count()`
+- `lineComplete(geojson)` → Calculates marker position → `bubble_fn_saveLineDrawing()`
+- `areaComplete(geojson)` → Calculates marker position → `bubble_fn_saveAreaDrawing()`
 
-**No duplication:** `stopAllDrawingTools()` handles all resets via Toolbox element.
+**Toolbox Elements (JavaScript to Bubble):**
+- `bubble_fn_update_point_count` - Receives point count → Updates Bubble state
+- `bubble_fn_saveLineDrawing` - Receives {output1, output2, output3} → Triggers save workflow
+  - output1 = Full GeoJSON Feature
+  - output2 = Coordinates array
+  - output3 = Marker position [lat, lng]
+- `bubble_fn_saveAreaDrawing` - Receives {output1, output2, output3} → Triggers save workflow
+  - output1 = Full GeoJSON Feature
+  - output2 = Coordinates array
+  - output3 = Marker position [lat, lng]
+
+**Custom Event:**
+- "Reset Drawing State" - Calls `stopAllDrawingTools()` + resets Bubble states
+
+**Benefits:**
+- Wrappers handle data transformation (marker position calculation)
+- Toolbox elements receive clean, structured data
+- No circular dependencies
+- Lazy loading (wrappers initialize on first use)
