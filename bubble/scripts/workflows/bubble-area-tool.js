@@ -6,66 +6,22 @@
 // Prerequisites:
 //   - Page header script v4 installed (bubble-drawing-tools-v4.html)
 //   - Map captured (window.__leafy_found_map available)
-//   - Drawing state initialized (window.__drawing_state)
+//   - Wrapper functions initialized (see TOOLBAR_CANCEL_DONE_BUTTONS.md)
 //
-// Version: 1.0
-// Date: 2025-10-24
-
-// =====================================================
-// SNIPPET 1: REGISTER AREA COMPLETION CALLBACK
-// =====================================================
-// Location: "When Page is loaded" workflow OR in Area button click workflow
-// Tool: Plugins → Toolbox → Run JavaScript
-
-console.log('🔶 Registering Area tool callback...');
-
-// Receives GeoJSON Feature string
-window.bubble_fn_areaComplete = function(geojsonString) {
-  console.log('🔶 Area drawing callback triggered');
-
-  var geojson = JSON.parse(geojsonString);
-
-  console.log('  - Type:', geojson.geometry.type);  // "Polygon"
-  console.log('  - Vertices:', geojson.geometry.coordinates[0].length);
-  console.log('  - Tool:', geojson.properties.tool);  // "area"
-
-  // Calculate marker position (center of polygon)
-  var coords = geojson.geometry.coordinates[0];  // First ring of polygon
-  var sumLat = 0, sumLng = 0;
-  coords.forEach(function(coord) {
-    sumLng += coord[0];
-    sumLat += coord[1];
-  });
-  var centerLng = sumLng / coords.length;
-  var centerLat = sumLat / coords.length;
-  var markerPosition = [centerLat, centerLng];  // [lat, lng] for Leaflet
-
-  // Trigger Bubble workflow to save drawing
-  if (window.bubble_fn_saveAreaDrawing) {
-    bubble_fn_saveAreaDrawing({
-      properties: geojsonString,
-      coordinates: JSON.stringify(coords),
-      markerPosition: JSON.stringify(markerPosition)
-    });
-  } else {
-    console.warn('⚠️ window.bubble_fn_saveAreaDrawing not defined. Create the save workflow first.');
-  }
-};
-
-console.log('✅ Area completion callback registered');
-
-// Example of what the output looks like:
-// geojsonString (full GeoJSON): '{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[-47.59,-23.51],[-47.60,-23.52],[-47.59,-23.53],[-47.59,-23.51]]]},"properties":{"tool":"area","color":"#3B82F6","strokeWeight":3,"fillOpacity":0.3}}'
-// coords (extracted first ring): [[-47.59,-23.51],[-47.60,-23.52],[-47.59,-23.53],[-47.59,-23.51]]
+// IMPORTANT: Before using these snippets, you MUST initialize wrapper functions in your
+// Line button workflow. See bubble/docs/TOOLBAR_CANCEL_DONE_BUTTONS.md for complete guide.
+// The wrappers (pointAdded, lineComplete, areaComplete) handle data transformation and
+// call Toolbox elements with output1, output2, output3 format.
 //
-// NOTE: GeoJSON Polygon has triple-nested coordinates (array of rings), but we extract
-// the first ring [0] to get double-nested array for database storage
+// Version: 2.0 (Wrapper Architecture)
+// Date: 2025-10-28
 
 // =====================================================
-// SNIPPET 2: ACTIVATE AREA TOOL
+// SNIPPET 1: ACTIVATE AREA TOOL
 // =====================================================
-// Location: "When Area button is clicked" workflow
+// Location: "When Area button is clicked" workflow (shares wrappers with Line tool)
 // Tool: Plugins → Toolbox → Run JavaScript
+// Note: Wrappers are initialized once in Line button workflow - reused for Area
 
 console.log('🔶 Activating Area tool...');
 
@@ -75,16 +31,16 @@ window.__leafy_area.start();
 console.log('✅ Area tool activated - click to add vertices, double-click to close polygon');
 
 // =====================================================
-// SNIPPET 3: SAVE AREA DRAWING TO DATABASE
+// SNIPPET 2: SAVE AREA DRAWING TO DATABASE
 // =====================================================
-// Location: Custom Event workflow "Save Area Drawing"
-// Parameters needed (in this order): properties (text), coordinates (text), markerPosition (text)
+// Location: Workflow triggered by Toolbox element "bubble_fn_saveAreaDrawing"
+// Parameters received: output1 (properties), output2 (coordinates), output3 (markerPosition)
 // Tool: Create a new thing → Drawing
 //
-// IMPORTANT: Parameter order must match callback at line 45-49:
-//   - output1 = properties (full GeoJSON)
-//   - output2 = coordinates (extracted first ring)
-//   - output3 = markerPosition (center point)
+// IMPORTANT: Toolbox element receives data from wrapper (see TOOLBAR_CANCEL_DONE_BUTTONS.md):
+//   - output1 = properties (full GeoJSON Feature)
+//   - output2 = coordinates (extracted first ring of polygon)
+//   - output3 = markerPosition (center point [lat, lng])
 
 // BUBBLE ACTION: Create a new Drawing
 // In the Bubble editor, create these field assignments:
@@ -109,7 +65,7 @@ console.log('✅ Area tool activated - click to add vertices, double-click to cl
 // NOTE: privacy is a LIST field (type: Account Type), NOT JSON text!
 
 // =====================================================
-// SNIPPET 4: RENDER POLYGON ON MAP AFTER SAVE
+// SNIPPET 3: RENDER POLYGON ON MAP AFTER SAVE
 // =====================================================
 // Location: "Save Area Drawing" workflow, AFTER database create action
 // Tool: Plugins → Toolbox → Run JavaScript
@@ -273,7 +229,7 @@ if (!map) {
 // Missing this brace will cause "SyntaxError: Unexpected end of input"
 
 // =====================================================
-// SNIPPET 5: STOP ALL DRAWING TOOLS (UNIVERSAL)
+// SNIPPET 4: STOP ALL DRAWING TOOLS (UNIVERSAL)
 // =====================================================
 // Location: "When Select button is clicked" or "Cancel" button or any tool button clicked
 // Tool: Plugins → Toolbox → Run JavaScript

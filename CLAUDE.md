@@ -228,8 +228,8 @@ simplifyPath(points, 0.0001);  // Douglas-Peucker algorithm
 
 ### Workflow Files
 - `bubble-point-tool.js` - Point tool snippets (6 snippets)
-- `bubble-line-tool.js` - Line tool snippets (5 snippets)
-- `bubble-area-tool.js` - Area tool snippets (5 snippets)
+- `bubble-line-tool.js` - Line tool snippets (4 snippets, v2.0 Wrapper Architecture)
+- `bubble-area-tool.js` - Area tool snippets (4 snippets, v2.0 Wrapper Architecture)
 - `bubble-load-drawings.js` - Load all drawings on page load
 
 ### Page Header Script

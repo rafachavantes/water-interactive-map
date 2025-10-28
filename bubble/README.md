@@ -58,6 +58,27 @@ Production implementation of Water Infrastructure Interactive Map for Bubble.io.
 
 ## Recent Updates
 
+### 2025-10-28 - Workflow Files Cleanup
+
+**Removed Legacy Code:**
+- ✅ Removed SNIPPET 1 (old callback pattern) from `bubble-line-tool.js` and `bubble-area-tool.js`
+- ✅ Updated headers to reference wrapper architecture (TOOLBAR_CANCEL_DONE_BUTTONS.md)
+- ✅ Renumbered snippets: now SNIPPET 1-4 (previously SNIPPET 2-5)
+- ✅ Clarified that wrappers must be initialized in Line button workflow
+
+**What Changed:**
+- Old: Workflow files contained legacy `window.bubble_fn_lineComplete` / `window.bubble_fn_areaComplete` callback registration
+- New: Workflow files only contain Bubble workflow snippets (activate tool, save to DB, render on map)
+- Wrapper initialization code belongs in Bubble's Line button workflow (see TOOLBAR_CANCEL_DONE_BUTTONS.md)
+
+**Files Updated:**
+- `bubble-line-tool.js` - Version 2.0 (Wrapper Architecture)
+- `bubble-area-tool.js` - Version 2.0 (Wrapper Architecture)
+
+**No Action Required:** If you've already implemented the wrapper architecture following TOOLBAR_CANCEL_DONE_BUTTONS.md, no changes needed in Bubble. This cleanup only removes confusing legacy code from the workflow reference files.
+
+---
+
 ### 2025-10-27 - Wrapper Architecture (V3 - Clean Names!)
 
 **Wrapper + Toolbox Pattern:**

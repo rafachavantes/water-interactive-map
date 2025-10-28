@@ -6,62 +6,22 @@
 // Prerequisites:
 //   - Page header script v4 installed (bubble-drawing-tools-v4.html)
 //   - Map captured (window.__leafy_found_map available)
-//   - Drawing state initialized (window.__drawing_state)
+//   - Wrapper functions initialized (see TOOLBAR_CANCEL_DONE_BUTTONS.md)
 //
-// Version: 1.0
-// Date: 2025-10-24
+// IMPORTANT: Before using these snippets, you MUST initialize wrapper functions in your
+// Line button workflow. See bubble/docs/TOOLBAR_CANCEL_DONE_BUTTONS.md for complete guide.
+// The wrappers (pointAdded, lineComplete, areaComplete) handle data transformation and
+// call Toolbox elements with output1, output2, output3 format.
+//
+// Version: 2.0 (Wrapper Architecture)
+// Date: 2025-10-28
 
 // =====================================================
-// SNIPPET 1: REGISTER LINE COMPLETION CALLBACK
+// SNIPPET 1: ACTIVATE LINE TOOL
 // =====================================================
-// Location: "When Page is loaded" workflow OR in Line button click workflow
+// Location: "When Line button is clicked" workflow (AFTER initializing wrappers)
 // Tool: Plugins → Toolbox → Run JavaScript
-
-console.log('📏 Registering Line tool callback...');
-
-// Receives GeoJSON Feature string
-window.bubble_fn_lineComplete = function(geojsonString) {
-  console.log('📏 Line drawing callback triggered');
-
-  var geojson = JSON.parse(geojsonString);
-
-  console.log('  - Type:', geojson.geometry.type);  // "LineString"
-  console.log('  - Points:', geojson.geometry.coordinates.length);
-  console.log('  - Tool:', geojson.properties.tool);  // "line"
-
-  // Calculate marker position (center of line)
-  var coords = geojson.geometry.coordinates;
-  var sumLat = 0, sumLng = 0;
-  coords.forEach(function(coord) {
-    sumLng += coord[0];
-    sumLat += coord[1];
-  });
-  var centerLng = sumLng / coords.length;
-  var centerLat = sumLat / coords.length;
-  var markerPosition = [centerLat, centerLng];  // [lat, lng] for Leaflet
-
-  // Trigger Bubble workflow to save drawing
-  if (window.bubble_fn_saveLineDrawing) {
-    bubble_fn_saveLineDrawing({
-      coordinates: JSON.stringify(coords),           // Array of [lng, lat] pairs
-      markerPosition: JSON.stringify(markerPosition), // [lat, lng]
-      properties: geojsonString                       // Full GeoJSON Feature
-    });
-  } else {
-    console.warn('⚠️ window.bubble_fn_saveLineDrawing not defined. Create the save workflow first.');
-  }
-};
-
-console.log('✅ Line completion callback registered');
-
-// Example of what the output looks like:
-// geojsonString: '{"type":"Feature","geometry":{"type":"LineString","coordinates":[[-47.59,-23.51],[-47.60,-23.52]]},"properties":{"tool":"line","color":"#3B82F6","strokeWeight":3}}'
-
-// =====================================================
-// SNIPPET 2: ACTIVATE LINE TOOL
-// =====================================================
-// Location: "When Line button is clicked" workflow
-// Tool: Plugins → Toolbox → Run JavaScript
+// Note: Initialize wrappers first - see TOOLBAR_CANCEL_DONE_BUTTONS.md
 
 console.log('📏 Activating Line tool...');
 
@@ -71,7 +31,7 @@ window.__leafy_line.start();
 console.log('✅ Line tool activated - click to add vertices, double-click to finish');
 
 // =====================================================
-// SNIPPET 3: SAVE LINE DRAWING TO DATABASE
+// SNIPPET 2: SAVE LINE DRAWING TO DATABASE
 // =====================================================
 // Location: Custom Event workflow "Save Line Drawing"
 // Parameters needed: coordinates (text), markerPosition (text), properties (text)
@@ -100,7 +60,7 @@ console.log('✅ Line tool activated - click to add vertices, double-click to fi
 // NOTE: privacy is a LIST field (type: Account Type), NOT JSON text!
 
 // =====================================================
-// SNIPPET 4: RENDER LINE ON MAP AFTER SAVE
+// SNIPPET 3: RENDER LINE ON MAP AFTER SAVE
 // =====================================================
 // Location: "Save Line Drawing" workflow, AFTER database create action
 // Tool: Plugins → Toolbox → Run JavaScript
@@ -262,7 +222,7 @@ if (!map) {
 }
 
 // =====================================================
-// SNIPPET 5: STOP ALL DRAWING TOOLS (UNIVERSAL)
+// SNIPPET 4: STOP ALL DRAWING TOOLS (UNIVERSAL)
 // =====================================================
 // Location: "When Select button is clicked" or "Cancel" button or any tool button clicked
 // Tool: Plugins → Toolbox → Run JavaScript
