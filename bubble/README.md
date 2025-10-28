@@ -44,10 +44,14 @@ Production implementation of Water Infrastructure Interactive Map for Bubble.io.
 - ✅ JS-to-Bubble system (Page Header → Wrappers → Toolbox → Workflows)
 - ✅ Layer management and cleanup
 
+**UI Components:**
+- ✅ Drawing Toolbar - Tool buttons and active state management
+- ✅ Role Selector - Admin can view drawings as different roles (filters and reloads drawings)
+
 ### Next Steps
-- 🎛️ **Drawing Toolbar UI** - Mode toggle (Edit/View), tool buttons, role selector, Cancel/Done buttons
 - 📋 **Layers Panel** - Categorized element types with counts and filters
 - 📄 **Details Panel** - Edit drawing properties, privacy, contact info
+- 🔐 **Approval Workflows** - Admin approve/reject drawings
 
 ### Important Bubble Setup
 - **Toolbox Elements:** `bubble_fn_update_point_count`, `bubble_fn_saveLineDrawing`, `bubble_fn_saveAreaDrawing`
@@ -57,6 +61,40 @@ Production implementation of Water Infrastructure Interactive Map for Bubble.io.
 - **Default:** Set `showTooltip` to "yes" when creating new drawings
 
 ## Recent Updates
+
+### 2025-10-28 - Role Selector with Drawing Filtering
+
+**Feature Complete: Admin Role Selector**
+- ✅ Admin can view drawings as different roles (User, Ditch Rider, Admin)
+- ✅ Dropdown filters and reloads drawings based on privacy settings
+- ✅ Clear + reload workflow maintains map view (no bounds refitting)
+- ✅ Real-time filtering when role changes
+
+**Implementation:**
+- New workflow file: `bubble-reload-filtered-drawings.js` (2 snippets)
+- SNIPPET 1: Clear all existing drawings from map
+- SNIPPET 2: Reload filtered drawings based on selected role
+- Uses existing rendering logic from page load script
+
+**How It Works:**
+1. Admin selects role from dropdown (e.g., "User")
+2. Clear all current drawings from map
+3. Database query: Search Drawings where `privacy contains <selected role>`
+4. Render filtered results on map
+5. Map view stays the same (no zoom/pan)
+
+**Bubble Setup:**
+- Add custom state: `viewAsRole` (text) on Page or Toolbar
+- Workflow: "When Role selector value is changed"
+  - Step 1: Set viewAsRole state
+  - Step 2: Run JavaScript (SNIPPET 1 - clear)
+  - Step 3: Search Drawings (filtered by privacy)
+  - Step 4: Run JavaScript (SNIPPET 2 - reload)
+
+**Files Added:**
+- `bubble/scripts/workflows/bubble-reload-filtered-drawings.js`
+
+---
 
 ### 2025-10-28 - Area Tool Polygon Closure Fix
 
