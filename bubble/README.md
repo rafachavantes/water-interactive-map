@@ -58,6 +58,24 @@ Production implementation of Water Infrastructure Interactive Map for Bubble.io.
 
 ## Recent Updates
 
+### 2025-10-28 - Area Tool Polygon Closure Fix
+
+**Fixed GeoJSON Compliance:**
+- 🐛 Fixed Area tool polygons not closing properly after page reload
+- ✅ Added closing coordinate to polygon rings (first point duplicated at end per GeoJSON spec)
+- ✅ Polygons now render with all edges visible after save and reload
+
+**Technical Details:**
+- Problem: Area tool created polygons without the closing coordinate (e.g., triangle with 3 points instead of 4)
+- GeoJSON Polygon spec requires: first coordinate === last coordinate to close the ring
+- Fix: Modified `bubble-drawing-tools-v4.html` lines 690-692 to add closing coordinate
+- Result: Triangle now saves as 4 coordinates, rectangle as 5 coordinates (with first point repeated)
+
+**Files Updated:**
+- `bubble/scripts/page-header/bubble-drawing-tools-v4.html` - Area tool `finish()` function
+
+---
+
 ### 2025-10-28 - Workflow Files Cleanup
 
 **Removed Legacy Code:**

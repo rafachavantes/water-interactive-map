@@ -687,11 +687,15 @@
       if (!map || !isMapLike(map)) return;
 
       if (this.points.length >= 3) {
+        // Create ring with closing coordinate (GeoJSON spec requires first === last)
+        const ring = this.points.map(p => [p[1], p[0]]); // Convert to [lng, lat]
+        ring.push(ring[0]); // Close the ring
+
         const geojson = {
           type: "Feature",
           geometry: {
             type: "Polygon",
-            coordinates: [this.points.map(p => [p[1], p[0]])] // Array of rings, [lng, lat]
+            coordinates: [ring] // Array of rings with closing coordinate
           },
           properties: {
             tool: 'area',
