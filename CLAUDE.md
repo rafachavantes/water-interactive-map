@@ -232,6 +232,7 @@ simplifyPath(points, 0.0001);  // Douglas-Peucker algorithm
 - `bubble-area-tool.js` - Area tool snippets (4 snippets, v2.0 Wrapper Architecture)
 - `bubble-load-drawings.js` - Load all drawings on page load
 - `bubble-reload-filtered-drawings.js` - Role selector: clear + reload filtered drawings (2 snippets)
+- `bubble-fuzzy-search.js` - Fuzzy search: real-time filtering with typo tolerance (4 snippets)
 
 ### Page Header Script
 - `bubble-drawing-tools-v4.html` - Main script with all 4 tools + utilities

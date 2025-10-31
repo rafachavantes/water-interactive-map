@@ -47,6 +47,7 @@ Production implementation of Water Infrastructure Interactive Map for Bubble.io.
 **UI Components:**
 - ✅ Drawing Toolbar - Tool buttons and active state management
 - ✅ Role Selector - Admin can view drawings as different roles (filters and reloads drawings)
+- ✅ Fuzzy Search - Real-time search filtering with typo tolerance (dims non-matching drawings)
 
 ### Next Steps
 - 📋 **Layers Panel** - Categorized element types with counts and filters
@@ -61,6 +62,53 @@ Production implementation of Water Infrastructure Interactive Map for Bubble.io.
 - **Default:** Set `showTooltip` to "yes" when creating new drawings
 
 ## Recent Updates
+
+### 2025-10-28 - Fuzzy Search with Real-Time Filtering
+
+**Feature Complete: Search Box with Fuzzy Matching**
+- ✅ Real-time search as user types (no page reload)
+- ✅ Fuzzy matching with typo tolerance (e.g., "cnal" matches "canal")
+- ✅ Dims non-matching drawings (keeps them visible but faded)
+- ✅ Works with existing loaded drawings (client-side filtering)
+- ✅ Combines with role selector filtering
+
+**Implementation:**
+- New workflow file: `bubble-fuzzy-search.js` (4 snippets)
+- SNIPPET 1: Filter drawings by dimming non-matches
+- SNIPPET 2: Optional highlight effect for matched drawings
+- SNIPPET 3: Clear search to restore all drawings
+- SNIPPET 4: Alternative strict mode (removes non-matches completely)
+
+**How It Works:**
+1. User types in search box
+2. Fuzzy Search Plugin searches through Drawing names (client-side)
+3. JavaScript loops through `window.__drawing_layers`
+4. Matched drawings: Full opacity (visible)
+5. Non-matched drawings: Dimmed to 20% opacity (subtle background)
+6. Clear search: All drawings restore to full visibility
+
+**Fuzzy Search Settings:**
+- Threshold: 0.6 (moderate fuzziness, good for typos)
+- Distance: 100 (max distance between characters)
+- Searches in: Drawing name field
+- Typo tolerance: "head" matches "Headgate", "cnal" matches "Canal"
+
+**Bubble Setup:**
+- Install Fuzzy Search Plugin from marketplace
+- Add Search Input to toolbar/header
+- Add invisible Fuzzy Search element (searches Drawings)
+- Workflow: "When Search Input value changed" → Run SNIPPET 1
+- Workflow: "When Search Input value is empty" → Run SNIPPET 3
+
+**Performance:**
+- Client-side filtering (no database query on every keystroke)
+- Fast response time even with 100+ drawings
+- Optional debouncing for large datasets (500+ drawings)
+
+**Files Added:**
+- `bubble/scripts/workflows/bubble-fuzzy-search.js`
+
+---
 
 ### 2025-10-28 - Role Selector with Drawing Filtering
 
