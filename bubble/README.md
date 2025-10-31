@@ -74,10 +74,12 @@ Production implementation of Water Infrastructure Interactive Map for Bubble.io.
 
 **Implementation:**
 - New workflow file: `bubble-fuzzy-search.js` (4 snippets)
-- SNIPPET 1: Filter drawings by dimming non-matches
+- SNIPPET 1: Filter drawings by dimming non-matches (uses Toolbox param1 with comma-separated IDs)
 - SNIPPET 2: Optional highlight effect for matched drawings
 - SNIPPET 3: Clear search to restore all drawings
 - SNIPPET 4: Alternative strict mode (removes non-matches completely)
+- Uses `properties.param1` format for Toolbox plugin integration
+- Param1 format: `<Fuzzy Search Results:each item's _id:join with ,>`
 
 **How It Works:**
 1. User types in search box
@@ -96,9 +98,12 @@ Production implementation of Water Infrastructure Interactive Map for Bubble.io.
 **Bubble Setup:**
 - Install Fuzzy Search Plugin from marketplace
 - Add Search Input to toolbar/header
+- Add custom states: `searchQuery` (text), `isSearchActive` (yes/no, default: no)
 - Add invisible Fuzzy Search element (searches Drawings)
-- Workflow: "When Search Input value changed" → Run SNIPPET 1
-- Workflow: "When Search Input value is empty" → Run SNIPPET 3
+- Workflow 1: "When Fuzzy Search matches is not empty" → Set isSearchActive = yes → Run SNIPPET 1 with param1
+- Workflow 2: "When Search Input value changed AND value is empty" (Condition: isSearchActive = yes) → Set isSearchActive = no → Run SNIPPET 3
+- State-based approach prevents continuous trigger loop
+- **param1 format**: `<Fuzzy Search Results:each item's _id:join with ,>` (NO quotes around expression!)
 
 **Performance:**
 - Client-side filtering (no database query on every keystroke)

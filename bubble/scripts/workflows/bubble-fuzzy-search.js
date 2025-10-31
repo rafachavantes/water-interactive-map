@@ -15,19 +15,23 @@
 // =====================================================
 // SNIPPET 1: FILTER DRAWINGS BY SEARCH QUERY
 // =====================================================
-// Location: "When Search Input's value is changed" workflow
+// Location: "When Fuzzy Search matches is not empty" workflow
 // Tool: Plugins → Toolbox → Run JavaScript
-// Order: Run this AFTER Fuzzy Search element returns results
+// Order: Run this workflow when fuzzy search finds matches
 //
-// IMPORTANT: Replace <MATCHED_IDS> with Bubble dynamic data
-// Example: [<Fuzzy Search Results's _id>]
-// Result format: ["abc123", "def456", "ghi789"]
+// IMPORTANT: Pass matched IDs via Toolbox param1
+// Format: Comma-separated string (e.g., "abc123,def456,ghi789")
+// In Bubble: param1 = <Fuzzy Search Results:each item's _id:join with ,>
 
 console.log('🔍 Filtering drawings by search query...');
 
-// BUBBLE DATA INJECTION POINT
-// Replace with: List of matched drawing IDs from Fuzzy Search
-var matchedIds = <MATCHED_IDS>;
+// Parse comma-separated IDs from Toolbox param1
+var matchedIdsString = properties.param1 || "";
+var matchedIds = matchedIdsString.split(",").map(function(id) {
+   return id.trim();  // Trim each ID
+ }).filter(function(id) {
+   return id !== "";  // Filter out empty strings
+ });
 
 console.log('📊 Found', matchedIds.length, 'drawings matching search query');
 
@@ -46,36 +50,47 @@ if (!map) {
     var item = window.__drawing_layers[id];
 
     if (matchedIds.includes(id)) {
-      // MATCHED: Show this drawing with full opacity
-      if (item.layer) {
-        item.layer.setStyle({opacity: 1});
-        if (item.layer.options.fillOpacity !== undefined) {
-          // Polygon - restore original fill opacity
-          item.layer.setStyle({fillOpacity: 0.3});
-        }
-      }
+   // MATCHED: Show this drawing with full opacity
+   if (item.layer) {
+     // Check if it's a marker or a polyline/polygon
+     if (typeof item.layer.setStyle === 'function') {
+       // Polyline or Polygon
+       item.layer.setStyle({opacity: 1});
+       if (item.layer.options.fillOpacity !== undefined) {
+         item.layer.setStyle({fillOpacity: 0.3});
+       }
+     } else {
+       // Marker (Point) - use setOpacity
+       item.layer.setOpacity(1);
+     }
+   }
 
-      if (item.marker) {
-        item.marker.setOpacity(1);
-      }
+   if (item.marker) {
+     item.marker.setOpacity(1);
+   }
 
-      showCount++;
-    } else {
-      // NOT MATCHED: Dim this drawing (semi-transparent)
-      if (item.layer) {
-        item.layer.setStyle({opacity: 0.2});
-        if (item.layer.options.fillOpacity !== undefined) {
-          // Polygon - dim fill as well
-          item.layer.setStyle({fillOpacity: 0.1});
-        }
-      }
+   showCount++;
+ } else {
+   // NOT MATCHED: Dim this drawing
+   if (item.layer) {
+     if (typeof item.layer.setStyle === 'function') {
+       // Polyline or Polygon
+       item.layer.setStyle({opacity: 0.2});
+       if (item.layer.options.fillOpacity !== undefined) {
+         item.layer.setStyle({fillOpacity: 0.1});
+       }
+     } else {
+       // Marker (Point)
+       item.layer.setOpacity(0.2);
+     }
+   }
 
-      if (item.marker) {
-        item.marker.setOpacity(0.2);
-      }
+   if (item.marker) {
+     item.marker.setOpacity(0.2);
+   }
 
-      hideCount++;
-    }
+   hideCount++;
+ }
   });
 
   console.log('✅ Filtered drawings:', showCount, 'shown,', hideCount, 'dimmed');
@@ -87,10 +102,15 @@ if (!map) {
 // Location: Same workflow as SNIPPET 1 (optional enhancement)
 // Tool: Plugins → Toolbox → Run JavaScript
 // Purpose: Add pulsing/glow effect to matched drawings
+// Note: Uses same param1 format as SNIPPET 1
 
 console.log('✨ Adding highlight effect to matched drawings...');
 
-var matchedIds = <MATCHED_IDS>;
+// Parse comma-separated IDs from Toolbox param1
+var matchedIdsString = properties.param1 || "";
+var matchedIds = matchedIdsString.split(",").filter(function(id) {
+  return id.trim() !== "";
+});
 var map = window.__leafy_found_map;
 
 if (map && window.__drawing_layers) {
@@ -143,10 +163,17 @@ if (!map) {
 
     // Restore full opacity
     if (item.layer) {
-      item.layer.setStyle({opacity: 1});
-      if (item.layer.options.fillOpacity !== undefined) {
-        // Polygon - restore original fill opacity
-        item.layer.setStyle({fillOpacity: 0.3});
+      // Check if it's a marker or a polyline/polygon
+      if (typeof item.layer.setStyle === 'function') {
+        // Polyline or Polygon
+        item.layer.setStyle({opacity: 1});
+        if (item.layer.options.fillOpacity !== undefined) {
+          // Polygon - restore original fill opacity
+          item.layer.setStyle({fillOpacity: 0.3});
+        }
+      } else {
+        // Marker (Point) - use setOpacity
+        item.layer.setOpacity(1);
       }
     }
 
@@ -167,10 +194,15 @@ if (!map) {
 // Tool: Plugins → Toolbox → Run JavaScript
 // Purpose: Completely remove non-matching drawings from map (instead of dimming)
 // Note: Use this if you prefer matched drawings only, not dimmed non-matches
+// Uses same param1 format as SNIPPET 1
 
 console.log('🔍 Showing only matched drawings (removing non-matches)...');
 
-var matchedIds = <MATCHED_IDS>;
+// Parse comma-separated IDs from Toolbox param1
+var matchedIdsString = properties.param1 || "";
+var matchedIds = matchedIdsString.split(",").filter(function(id) {
+  return id.trim() !== "";
+});
 var map = window.__leafy_found_map;
 
 if (map && window.__drawing_layers) {
@@ -221,9 +253,12 @@ if (map && window.__drawing_layers) {
 // 2. Add Search Input Element
 //    - Location: Toolbar or header
 //    - Placeholder: "Search drawings..."
-//    - Add custom state to Page: searchQuery (text)
 //
-// 3. Add Fuzzy Search Element (invisible)
+// 3. Add Custom States to Page
+//    - State 1: searchQuery (text) - stores current search query
+//    - State 2: isSearchActive (yes/no, default: no) - prevents continuous trigger
+//
+// 4. Add Fuzzy Search Element (invisible)
 //    - Element type: Fuzzy Search (from plugin)
 //    - Data source: Do a search for Drawings
 //      - Constraint: privacy contains Current User's role (or viewAsRole state)
@@ -235,33 +270,53 @@ if (map && window.__drawing_layers) {
 //      - Distance: 100 (max distance between characters)
 //      - Include score: yes (optional, for debugging)
 //
-// 4. Create Workflow: "When Search Input's value is changed"
+// 5. Create Workflow 1: "When Fuzzy Search matches is not empty"
+//    (This prevents continuous trigger and only runs when there are results)
 //
-//    Step 1: Set state
+//    Step 1: Set state isSearchActive = yes
+//      - Element: Page
+//      - State: isSearchActive
+//      - Value: yes
+//
+//    Step 2: Set state searchQuery
 //      - Element: Page
 //      - State: searchQuery
 //      - Value: Search Input's value
 //
-//    Step 2: Run JavaScript (SNIPPET 1 - Filter drawings)
+//    Step 3: Run JavaScript (SNIPPET 1 - Filter drawings)
 //      - Plugins → Toolbox → Run JavaScript
 //      - Code: Copy SNIPPET 1 above
-//      - Replace <MATCHED_IDS> with:
-//        [<Fuzzy Search Results's _id>]
-//      - Note: This creates a JavaScript array of matched drawing IDs
+//      - param1: <Fuzzy Search Results:each item's _id:join with ,>
+//      - ⚠️ IMPORTANT: Do NOT wrap the dynamic expression in quotes!
+//      - ❌ WRONG: "<Fuzzy Search Results:each item's _id:join with ,>"
+//      - ✅ CORRECT: <Fuzzy Search Results:each item's _id:join with ,>
+//      - Note: This creates comma-separated string of IDs
 //
-//    Step 3 (Optional): Run JavaScript (SNIPPET 2 - Highlight)
+//    Step 4 (Optional): Run JavaScript (SNIPPET 2 - Highlight)
 //      - Add highlight effect to matched drawings
+//      - param1: <Fuzzy Search Results:each item's _id:join with ,>
+//      - ⚠️ Same warning: No quotes around the dynamic expression!
 //
-// 5. Create Workflow: "When Search Input's value is empty"
+// 6. Create Workflow 2: "When Search Input's value is changed AND This Input's value is empty"
+//    (This restores all drawings when user clears/deletes search)
 //
-//    Step 1: Set state
+//    Condition: Only when Page's isSearchActive is yes
+//    (This prevents continuous loop when input stays empty!)
+//
+//    Step 1: Set state isSearchActive = no
+//      - Element: Page
+//      - State: isSearchActive
+//      - Value: no
+//
+//    Step 2: Set state searchQuery = (empty)
 //      - Element: Page
 //      - State: searchQuery
 //      - Value: (empty)
 //
-//    Step 2: Run JavaScript (SNIPPET 3 - Clear search)
+//    Step 3: Run JavaScript (SNIPPET 3 - Clear search)
 //      - Plugins → Toolbox → Run JavaScript
 //      - Code: Copy SNIPPET 3 above
+//      - No params needed
 //      - Restores all drawings to full visibility
 
 // =====================================================
